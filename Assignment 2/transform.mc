@@ -7,7 +7,7 @@ Data Expr -> "|" -> Expr : Expr                 Priority 10
 Data Expr -> "&" -> Expr : Expr                 Priority 20
 Data "!" -> Expr : Expr                         Priority 30
 
-Data "XOR" -> Expr : Expr                         Priority 40
+Data Expr -> "XOR" -> Expr : Expr                         Priority 40
 
 Data "TRUE" : Value
 Data "FALSE" : Value
