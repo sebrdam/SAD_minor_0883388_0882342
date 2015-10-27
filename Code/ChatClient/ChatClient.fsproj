@@ -62,9 +62,8 @@
     <Reference Include="System.Windows.Controls.Ribbon" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="websocket-sharp">
-      <HintPath>..\..\..\..\..\..\..\SVN\ANDERE\WebSocketServer\packages\WebSocketSharp\lib\websocket-sharp.dll</HintPath>
+      <HintPath>packages\WebSocketSharp\lib\websocket-sharp.dll</HintPath>
     </Reference>
-    <Reference Include="websocket-sharp" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
