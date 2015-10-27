@@ -66,7 +66,7 @@ let updateUser chatroomName buddyName key DSA myName =
              //Check if in file for update 
              for i in 0 .. income.ListOfUsers.Count - 1 do
                  if income.ListOfUsers.[i].Name = buddyName then
-                    let newUpdate = { income.ListOfUsers.[i] with Key = key }
+                    let newUpdate = { income.ListOfUsers.[i] with Key = key; DSA = DSA }
                     do income.ListOfUsers.Remove(income.ListOfUsers.[i]) |> ignore
                     income.ListOfUsers.Add(newUpdate)
                     buddyIsNotInList <- false
@@ -91,17 +91,13 @@ let updateUser chatroomName buddyName key DSA myName =
            //Encrypt the json 
            let encryptedText = EncryptAES.EncryptAESMessage.CreateEncryptedMessage(newJson, keyBytes, iVBytes)
            sw.WriteLine(encryptedText)
-           //No encryption
-           //sw.WriteLine(newJson)
         
         //Close stream
         sw.Close()
         //Update the file with tempfile
         File.Delete(CONFIG_FILE)
         File.Move(tempFile, CONFIG_FILE)
-    do null
-
-
+    
 
 //Return the data decrypted 
 let readConfigData() = 

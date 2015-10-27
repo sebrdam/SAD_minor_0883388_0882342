@@ -7,7 +7,9 @@ Student nummer: 0883388 en 0882342
 09-10-2015
 *)
 
+open OTR
 open OTR.Interface
+open OTR.Utilities
 open System
 open System.IO
 open System.Linq
@@ -25,6 +27,7 @@ open System.Runtime.Serialization
 open Newtonsoft.Json
 open System.Collections.Generic
 open System.Threading
+open System.Security.Cryptography
 
 open WaitingProcesForm
 open WebSocketConnect
@@ -34,12 +37,11 @@ type user = {Name: string; Chatroom: string}
 type Incoming = {Message: string; ListOfUsers: ResizeArray<user> }
 
 //Enter the chatroom and do the magic
-let rec enterOTRChatroom userName chatRoomName =
+let rec enterOTRChatroom userName chatRoomName chatroomType =
 
   let mutable OTRSessionManagerList = new Dictionary<string, OTRSessionManager>()
   let mutable userManagerList = new Dictionary<string, string>()
-  
-  let mutable myOTRSessionManager: OTRSessionManager = null  
+  let mutable myOTRSessionManager: OTRSessionManager = null
   
   //set WebSocket
   //let webSocket = setWebSocket "wss://xxxxxxxxx:8080/MultiChat" "sebastiaan" "password"
@@ -48,6 +50,13 @@ let rec enterOTRChatroom userName chatRoomName =
   //lets connect websocket and set chatroom name with cookie for server
   webSocket.SetCookie (new Net.Cookie ("chatroomName", chatRoomName))
   webSocket.SetCookie (new Net.Cookie ("name", userName))
+
+  if chatroomType = "1" then
+    webSocket.SetCookie (new Net.Cookie ("chatroomType", "1"))
+  elif chatroomType = "2" then
+    webSocket.SetCookie (new Net.Cookie ("chatroomType", "2"))
+  else
+    webSocket.SetCookie (new Net.Cookie ("chatroomType", "3"))
 
   //Windows chatform
   let mutable text_box: RichTextBox = null
@@ -72,11 +81,9 @@ let rec enterOTRChatroom userName chatRoomName =
             
   //Receive users in textbox
   let receiveUserRoom (form : #Form) =
-     
            userRoom.Clear()
            userRoom.SelectionStart <- userRoom.Text.Length
            userRoom.SelectionLength <- 0
-
            for i2 in userManagerList do
                userRoom.AppendText(" " + i2.Key + "\n")
       
@@ -98,12 +105,13 @@ let rec enterOTRChatroom userName chatRoomName =
           textBox.SelectionLength <- 0
           textBox.AppendText("[" + System.DateTime.Now.ToString("HH:mm:ss") + "] " + theName + " : " + message + "\n")))
       |> ignore
-      
+  
+  //When message send from textbox
   let enterMessage (textBoxQuery: #RichTextBox) (text_box_r: #RichTextBox) (e: KeyEventArgs) =
       if (e.KeyCode = Keys.Enter) then 
             
             //Send message in OTR
-            // Loop door dictionary met alle OtrSEssionManagers
+            // Loop dictionary for all OtrSEssionManagers
             let getState = 
                try 
                for i2 in OTRSessionManagerList do
@@ -125,7 +133,7 @@ let rec enterOTRChatroom userName chatRoomName =
       if (e.KeyCode = Keys.Enter) then 
        try 
          for i2 in OTRSessionManagerList do
-           do i2.Value.EncryptMessage(i2.Key,  "a new secret set") |> ignore
+           do i2.Value.EncryptMessage(i2.Key,  "a new SMP secret set") |> ignore
            do i2.Value.SetSMPUserSecret(i2.Key, secret.Text) |> ignore
        with | :? ApplicationException as ex -> printfn "exception %s" ex.Message
        theSecretSMPText <- secret.Text 
@@ -135,46 +143,57 @@ let rec enterOTRChatroom userName chatRoomName =
   let setSMPSecretEventClicked (secret: #RichTextBox) (e: EventArgs) = 
        try 
          for i2 in OTRSessionManagerList do
-           do i2.Value.EncryptMessage(i2.Key,  "a new secret set") |> ignore
+           do i2.Value.EncryptMessage(i2.Key,  "a new SMP secret set") |> ignore
            do i2.Value.SetSMPUserSecret(i2.Key, secret.Text) |> ignore
        with | :? ApplicationException as ex -> printfn "exception %s" ex.Message
        theSecretSMPText <- secret.Text 
        do receiveMessageTextBox (Color.Green) ("OTRSMP")  ( ": " + theSecretSMPText ) (conversationText) (form)
-
+  
+  //Check saved History for DSA fingerprints in chatroom and set SMP
   let setSMPSecretFromConfigData (buddyName) = 
-    let mutable found: bool = false
+    //let mutable found: bool = false
+    let mutable otrsession: OTRSessionManager = null
     let readTheConfigdata = SaveData.readConfigData()
     // todo: break from this for loop
     if readTheConfigdata.Length <> 0 then
-       
+       //Read saved History data
        for b in readTheConfigdata do
          let json: string = JsonConvert.DeserializeObject(b).ToString()
          let income: SaveData.Incoming = JsonConvert.DeserializeObject<SaveData.Incoming>(json)
-         if income.Chatroom = chatRoomName && income.Name = userName && income.ListOfUsers.Count > 0  && not (income.ListOfUsers.[0].Key = "")  then
-             //Set the secret for this chatroom
+         //See if the chatroom and loginname is in the Config history
+         if income.Chatroom = chatRoomName && income.Name = userName && income.ListOfUsers.Count > 0  && not (income.ListOfUsers.[0].Key = "") then
+             //Set the secret for this chatroom. Always 0 because we store first value with own name and secret
              theSecretSMPText <- income.ListOfUsers.[0].Key
-             
+             //Loop the users in the chatroom to check DSA fingerprint en set SMP
              try 
                  for listInUser in income.ListOfUsers do
                     if listInUser.Name <> userName then
                         let mutable userNotInList = true
+                        //Look up for every user the OTRSession and send message
                         for i2 in OTRSessionManagerList do
+                           //If buddy is in History and OTRsessionmanager
                            if buddyName = listInUser.Name && buddyName = i2.Key then
                               do userNotInList <- false
-                         //if buddyName = i2.Key then
-                              receiveMessageTextBox (Color.ForestGreen) ("OTR") ( "User '" + buddyName + "' is found in the history of this chatroom, saved password is set.") (conversationText) (form)
-                              do i2.Value.EncryptMessage(i2.Key,  "Saved password is set." ) |> ignore
+                              receiveMessageTextBox (Color.ForestGreen) ("OTR") ( "User '" + buddyName + "' is found in the history of this chatroom") (conversationText) (form)
+                              do i2.Value.EncryptMessage(i2.Key,  "Saved SMP secret is set." ) |> ignore
                               do i2.Value.SetSMPUserSecret(i2.Key, income.ListOfUsers.[0].Key) |> ignore
-                        if userNotInList then
-                           receiveMessageTextBox (Color.Red) ("OTR") ( "User '" + buddyName + "' is not found in the history of this chatroom.") (conversationText) (form)
-                            //do i2.Value.EncryptMessage(i2.Key,  "Saved SMP secret is set") |> ignore
-             with | :? ApplicationException as ex -> printfn "exception %s" ex.Message
-             found <- true
-         //if not found then
-         //   do otrsessie.SetSMPUserSecret(buddy, theSecretSMPText)
-    do null 
+                              if i2.Value.GetMyBuddyFingerPrint(buddyName) = listInUser.DSA then
+                                 do receiveMessageTextBox (Color.ForestGreen) ("OTR") ( "Fingerprint '" + buddyName + "' is verified.") (conversationText) (form)
+                              else
+                                 do receiveMessageTextBox (Color.Red) ("OTR") ( "User '" + buddyName + "' is not who seems he is!") (conversationText) (form)
 
-    
+                           //Buddy is not in history but is in otrsession get session for setting correct SMP
+                           if buddyName = i2.Key then
+                               otrsession <- i2.Value
+                                 
+                        if userNotInList then
+                           do otrsession.SetSMPUserSecret(buddyName, theSecretSMPText) |> ignore
+                           do otrsession.EncryptMessage(buddyName,  "Saved SMP secret is set for this chatroom." ) |> ignore
+                           receiveMessageTextBox (Color.Red) ("OTR") ( "User '" + buddyName + "' is not found in the history of this chatroom.") (conversationText) (form)
+                             
+             with | :? ApplicationException as ex -> printfn "exception %s" ex.Message
+             //found <- true
+   
   //OTR handler
   let onMyOTRMangerEventHandler(e : OTREventArgs) =
       match e.GetOTREvent() with 
@@ -196,13 +215,11 @@ let rec enterOTRChatroom userName chatRoomName =
       | OTR_EVENT.READY ->
           receiveUserRoom (form) |> ignore
           receiveMessageTextBox (Color.Red) (myBuddyUniqueId) ( "Encrypted OTR session established" ) (conversationText) (form)
-          //Console.WriteLine(" Encrypted OTR session with {0} established",e.GetSessionID())
           smpButton.ImageLocation <- "smp.png"
           ttip1.ToolTipTitle <- CONST_SMP_MESSAGE_CHECK 
+          //On eventReady - If loggedin Check fingerprints DSA and set SMP
           if SaveDialog.isLoggedIn then
              do setSMPSecretFromConfigData(e.GetSessionID()) |> ignore
-                
-                
       | OTR_EVENT.DEBUG ->
           Console.WriteLine(" {0} ",e.GetMessage())
       | OTR_EVENT.EXTRA_KEY_REQUEST ->
@@ -232,10 +249,18 @@ let rec enterOTRChatroom userName chatRoomName =
     myBuddyUniqueId <- buddyName
     myOTRSessionManager <- new OTRSessionManager(myUniqueId)
     myOTRSessionManager.OnOTREvent.Add(onMyOTRMangerEventHandler)
-    myOTRSessionManager.CreateOTRSession(myBuddyUniqueId)
+    //Get the private DSA keys
+    let readKeys = DSAKey.getDSAKey()
+    let mutable param: DSAKeyParams = null
+    for b in readKeys do
+      let json: string = JsonConvert.DeserializeObject(b).ToString()
+      let keys: DSAKey.Keys = JsonConvert.DeserializeObject<DSAKey.Keys>(json)
+      param <- OTR.Interface.DSAKeyParams(keys.HexParamP, keys.HexParamQ, keys.HexParamG, keys.HexParamX)
+    //Create Session with privae DSA Keys
+    myOTRSessionManager.CreateOTRSession(myBuddyUniqueId, param)
     if requestOTR then
         myOTRSessionManager.RequestOTRSession(myBuddyUniqueId, OTRSessionManager.GetSupportedOTRVersionList().[0])
-       
+    
     //return
     myOTRSessionManager
   
@@ -254,7 +279,7 @@ let rec enterOTRChatroom userName chatRoomName =
   saveButton.Cursor <- Cursors.Hand
   let tti = new ToolTip()
   tti.SetToolTip(saveButton, "
-  The secret is also saved! When entering the saved room the secret will be automatically be verified.
+  The secret and fingerprints are also saved! When entering the saved room the fingerprint will automatically be verified.
   ")
   tti.ToolTipTitle <- "Save the Chatroom and user name for later use"
   //Because of long message let the tooltip show a little bit longer
@@ -265,10 +290,10 @@ let rec enterOTRChatroom userName chatRoomName =
                                     let henk = ""
                                     try
                                       SaveData.updateUser (chatRoomName) (userName) (theSecretSMPText) "" (userName)
+                                      receiveMessageTextBox (Color.ForestGreen) ("Chat") ( "You have saved the chatroom!") (conversationText) (form)
                                       for i2 in OTRSessionManagerList do
-                                      //let test = i2.Value.
-                                       do SaveData.updateUser chatRoomName i2.Key theSecretSMPText (i2.Value.GetSessionDSAFingerPrint(i2.Key)) userName |> ignore
-                                       //let DSAKeyParams = new DSAKeyParams()
+                                       do i2.Value.EncryptMessage(i2.Key,  "has saved the chatroom" ) |> ignore
+                                       do SaveData.updateUser chatRoomName i2.Key theSecretSMPText (i2.Value.GetMyBuddyFingerPrint(i2.Key)) userName |> ignore
                                     with | :? ApplicationException as ex -> printfn "exception %s" ex.Message)
 
 
@@ -311,7 +336,6 @@ let rec enterOTRChatroom userName chatRoomName =
   ttip2.SetToolTip(questionButton, "
   Check the identity of your buddy. Set a secret answer. 
   The answers must match! Your buddy's and you must first set the secret!
-  Then click on the icon in the left side corner to check if there is no man in the middle.
   ")
   ttip2.ToolTipTitle <- "Is your buddy really your buddy?"
   //Because of long message let the tooltip show a little bit longer
@@ -431,9 +455,6 @@ let rec enterOTRChatroom userName chatRoomName =
                 otrsessie <- initializeOTR userName b.Name true
                 OTRSessionManagerList.Add(b.Name, otrsessie)
                 userManagerList.Add(b.Name, b.Name)
-                //if SaveDialog.isLoggedIn then
-                //  do setSMPSecretFromConfigData1 (otrsessie) (b.Name) |> ignore
-
             firstTimeUpdate <- false
         else 
             for b in income.ListOfUsers do
@@ -442,11 +463,12 @@ let rec enterOTRChatroom userName chatRoomName =
                 otrsessie <- initializeOTR userName b.Name false
                 OTRSessionManagerList.Add(b.Name, otrsessie)
                 userManagerList.Add(b.Name, b.Name)
+                //Set the current SMP secret for new user
                 do otrsessie.SetSMPUserSecret(b.Name, theSecretSMPText) |> ignore 
         //Close Dialog for processing keys
         do WaitingProcesForm.waitDialog.Close() 
      
-     //Process messages
+     //Process other messages
      else
         for i in income.ListOfUsers do
             if i.Name <> userName then

@@ -24,7 +24,14 @@ open Newtonsoft.Json
 let mutable userName : TextBox = null
 let mutable buddyName : TextBox = null
 let mutable chatroomName : TextBox = null
+let mutable chatroomType: string = "1" 
 
+let mutable chatroomTypeOneToOne : RadioButton = null
+let mutable chatroomTypePrivate : RadioButton = null
+let mutable chatroomTypePublic : RadioButton = null
+
+//generate Private DSAkeys
+DSAKey.generateDSAKey()
 
 // Some random generator fished from the internet
 // http://stackoverflow.com/questions/22340351/f-create-random-string-of-letters-and-numbers
@@ -46,8 +53,7 @@ let EnterOTRChatRoomValidation userName chatRoomName =
     if( chatRoomNameMutable = "") then
         chatRoomNameMutable <- randomStringGenerator(8)
 
-    do EnterMultiOTRChatroomForm.enterOTRChatroom userNameMutable chatRoomNameMutable |> ignore
-    //do EnterOTRChatroomForm.enterOTRChatroom userNameMutable buddyNameMutable chatRoomNameMutable |> ignore
+    do EnterMultiOTRChatroomForm.enterOTRChatroom userNameMutable chatRoomNameMutable chatroomType |> ignore
 
 //eventforhistory clicked
 let historyEventClicked (theText: #ComboBox)(e: EventArgs) = 
@@ -58,7 +64,7 @@ let historyEventClicked (theText: #ComboBox)(e: EventArgs) =
       let income: SaveData.Incoming = JsonConvert.DeserializeObject<SaveData.Incoming>(json)
       let incomeSelectedName = income.Chatroom  + " -> " + income.Name
       if incomeSelectedName = selected then
-         do EnterMultiOTRChatroomForm.enterOTRChatroom income.Name income.Chatroom |> ignore
+         do EnterMultiOTRChatroomForm.enterOTRChatroom income.Name income.Chatroom chatroomType |> ignore
     do null 
 
 //Reload combobox clicked
@@ -77,13 +83,19 @@ let reloadClicked (theText: #ComboBox)(e: EventArgs) =
       
       do theText.Items.Add(theChatroomNames + " -> " + theNames) |> ignore 
       do theText.Text <- "Choose History"
-    do null 
+
+let chatroomTypeChanged (e: EventArgs) =
+    if(chatroomTypeOneToOne.Checked) then
+       chatroomType <- "1" 
+    elif(chatroomTypePrivate.Checked) then
+       chatroomType <- "2"
+    else
+       chatroomType <- "3"
 
 //Account login clicked
 let passwordLoginButtonClicked (passwordButtonLogin: #Button) (comboBox: #ComboBox) (buttonReload: #PictureBox) (e: EventArgs) =
     
     let mutable result: DialogResult = DialogResult.Ignore 
-
     if not (File.Exists(SaveData.CONFIG_FILE)) then
         let str = File.Create(SaveData.CONFIG_FILE)
         do str.Close()
@@ -99,7 +111,6 @@ let passwordLoginButtonClicked (passwordButtonLogin: #Button) (comboBox: #ComboB
         
         //If there is something in config file
         if read.Length <> 0 then
-           
            //Check if password is correct
            if SaveData.checkPassword() then
               let mutable json: string  = ""
@@ -111,7 +122,6 @@ let passwordLoginButtonClicked (passwordButtonLogin: #Button) (comboBox: #ComboB
                       let theChatroomNames = income.Chatroom
                       let theNames = income.Name
                       do comboBox.Items.Add(theChatroomNames + " -> " + theNames) |> ignore
-              comboBox.SelectedValueChanged.Add(historyEventClicked (comboBox))
               comboBox.Text <- "Choose History"
               comboBox.Show()
               buttonReload.Show()
@@ -185,7 +195,7 @@ let mainForm title =
   chatroomName.AutoSize <- false
   chatroomName.Font <- new System.Drawing.Font("Tahoma", 12.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
 
-  //Button
+  //Button chatroom Login
   let buttonSubmit = new Button(Location=new Point(chatroomName.Left, chatroomName.Height + chatroomName.Top + 20), Text="Login")
   buttonSubmit.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
   buttonSubmit.BackColor <- Color.LightGray
@@ -194,6 +204,42 @@ let mainForm title =
   buttonSubmit.FlatAppearance.BorderSize <- 1
   buttonSubmit.Size <- new System.Drawing.Size(160, 30)
   buttonSubmit.AutoSize <- false
+
+  //Make radiobuttons
+  let groupBox1 = new GroupBox()
+
+  groupBox1.Location <- new System.Drawing.Point(15, 170)
+  groupBox1.Name <- "groupBox1"
+  groupBox1.Size <- new System.Drawing.Size(120, 120)
+  groupBox1.TabIndex <- 0
+  groupBox1.TabStop <- false
+  groupBox1.Text <- "Choose Chatroom"
+  
+  chatroomTypeOneToOne <- new RadioButton()
+  chatroomTypeOneToOne.Location <- new System.Drawing.Point(30, 190)
+  chatroomTypeOneToOne.Name <- "radioButton1"
+  chatroomTypeOneToOne.Size <- new System.Drawing.Size(100, 30)
+  chatroomTypeOneToOne.TabIndex <- 4
+  chatroomTypeOneToOne.Text <- "1 on 1"
+  chatroomTypeOneToOne.Checked <- true
+  chatroomTypeOneToOne.CheckedChanged.Add(chatroomTypeChanged)
+
+  chatroomTypePrivate <- new RadioButton()
+  chatroomTypePrivate.Location <- new System.Drawing.Point(30, 220)
+  chatroomTypePrivate.Name <- "radioButton1"
+  chatroomTypePrivate.Size <- new System.Drawing.Size(100, 30)
+  chatroomTypePrivate.TabIndex <- 4
+  chatroomTypePrivate.Text <- "MPOTR Private"
+  chatroomTypePrivate.CheckedChanged.Add(chatroomTypeChanged)
+
+  chatroomTypePublic <- new RadioButton()
+  chatroomTypePublic.Location <- new System.Drawing.Point(30, 250)
+  chatroomTypePublic.Name <- "radioButton1"
+  chatroomTypePublic.Size <- new System.Drawing.Size(100, 30)
+  chatroomTypePublic.TabIndex <- 4
+  chatroomTypePublic.Text <- "MPOTR Public"
+  chatroomTypePublic.CheckedChanged.Add(chatroomTypeChanged)
+  
 
   //Account login
   let passwordLoginButton = new Button(Location=new Point(buttonSubmit.Left, buttonSubmit.Height + buttonSubmit.Top + 20), Text="Account Login")
@@ -224,7 +270,8 @@ let mainForm title =
   buttonReload.Click.Add(reloadClicked (theComboBox))
   //Click on Account button
   passwordLoginButton.Click.Add(passwordLoginButtonClicked passwordLoginButton theComboBox buttonReload)
-  
+  theComboBox.SelectedValueChanged.Add(historyEventClicked (theComboBox))
+
   // main form
   let form1 = new Form(Visible=true)
   form1.Text <- title
@@ -241,6 +288,10 @@ let mainForm title =
   form1.Controls.Add(theComboBox)
   form1.Controls.Add(buttonReload)
   form1.Controls.Add(passwordLoginButton)
+  form1.Controls.Add(chatroomTypeOneToOne)
+  form1.Controls.Add(chatroomTypePrivate)
+  form1.Controls.Add(chatroomTypePublic)
+  form1.Controls.Add(groupBox1)
   
   //First time in app
   theComboBox.Hide()

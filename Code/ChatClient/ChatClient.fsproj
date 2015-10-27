@@ -73,6 +73,7 @@
     <Compile Include="EncryptAES.fs" />
     <Compile Include="SaveData.fs" />
     <Compile Include="WebSocketConnect.fs" />
+    <Compile Include="DSAKey.fs" />
     <Compile Include="WaitingProcesForm.fs" />
     <Compile Include="NotifyIcon.fs" />
     <Compile Include="EnterMultiOTRChatroomForm.fs" />
