@@ -37,7 +37,7 @@ type user = {Name: string; Chatroom: string}
 type Incoming = {Message: string; ListOfUsers: ResizeArray<user> }
 
 //Enter the chatroom and do the magic
-let rec enterOTRChatroom userName chatRoomName chatroomType =
+let rec enterOTRChatroom userName chatRoomName chatroomType password =
 
   let mutable OTRSessionManagerList = new Dictionary<string, OTRSessionManager>()
   let mutable userManagerList = new Dictionary<string, string>()
@@ -57,6 +57,9 @@ let rec enterOTRChatroom userName chatRoomName chatroomType =
     webSocket.SetCookie (new Net.Cookie ("chatroomType", "2"))
   else
     webSocket.SetCookie (new Net.Cookie ("chatroomType", "3"))
+  
+  webSocket.SetCookie (new Net.Cookie ("password", SaveData.getSha256(password)))
+
 
   //Windows chatform
   let mutable text_box: RichTextBox = null
@@ -150,8 +153,8 @@ let rec enterOTRChatroom userName chatRoomName chatroomType =
        do receiveMessageTextBox (Color.Green) ("OTRSMP")  ( ": " + theSecretSMPText ) (conversationText) (form)
   
   //Check saved History for DSA fingerprints in chatroom and set SMP
+  //Only when Loggedin
   let setSMPSecretFromConfigData (buddyName) = 
-    //let mutable found: bool = false
     let mutable otrsession: OTRSessionManager = null
     let readTheConfigdata = SaveData.readConfigData()
     // todo: break from this for loop
@@ -192,7 +195,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType =
                            receiveMessageTextBox (Color.Red) ("OTR") ( "User '" + buddyName + "' is not found in the history of this chatroom.") (conversationText) (form)
                              
              with | :? ApplicationException as ex -> printfn "exception %s" ex.Message
-             //found <- true
+             
    
   //OTR handler
   let onMyOTRMangerEventHandler(e : OTREventArgs) =
@@ -463,12 +466,12 @@ let rec enterOTRChatroom userName chatRoomName chatroomType =
                 otrsessie <- initializeOTR userName b.Name false
                 OTRSessionManagerList.Add(b.Name, otrsessie)
                 userManagerList.Add(b.Name, b.Name)
-                //Set the current SMP secret for new user
+                //Set the current SMP secret for new user for chatroom and when client is not loggedin
                 do otrsessie.SetSMPUserSecret(b.Name, theSecretSMPText) |> ignore 
         //Close Dialog for processing keys
         do WaitingProcesForm.waitDialog.Close() 
      
-     //Process other messages
+     //Process OTR and Socket messages
      else
         for i in income.ListOfUsers do
             if i.Name <> userName then
@@ -476,6 +479,9 @@ let rec enterOTRChatroom userName chatRoomName chatroomType =
                      if i.Name = i2.Key then
                         myBuddyUniqueId <- i.Name
                         i2.Value.ProcessOTRMessage(i.Name, income.Message)
+            //Receive message in conversation from websocket on error
+            else
+               receiveMessageTextBox (Color.Red) ("WebSocket: ") ( income.Message ) (conversationText) (form)
      //end onreceive
          
       

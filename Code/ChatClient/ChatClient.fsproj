@@ -68,6 +68,7 @@
   <ItemGroup>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="SaveDialog.fs" />
+    <Compile Include="LoginChatroomDialog.fs" />
     <Compile Include="DecryptAES.fs" />
     <Compile Include="EncryptAES.fs" />
     <Compile Include="SaveData.fs" />

@@ -46,14 +46,21 @@ let randomStringGenerator =
 
 // Generate random values if you don't fill them in. Ninja's love this.
 let EnterOTRChatRoomValidation userName chatRoomName =
+    let mutable password = ""
     let mutable userNameMutable = userName
     let mutable chatRoomNameMutable = chatRoomName
     if( userNameMutable = "") then
         userNameMutable <- randomStringGenerator(6)
     if( chatRoomNameMutable = "") then
         chatRoomNameMutable <- randomStringGenerator(8)
-
-    do EnterMultiOTRChatroomForm.enterOTRChatroom userNameMutable chatRoomNameMutable chatroomType |> ignore
+    //If chatroom is private ask for password
+    if chatroomType = "2" then
+       let result: DialogResult = LoginChatroomDialog.showDialog("Password for chatroom") 
+       if result =  DialogResult.OK then
+        password <- LoginChatroomDialog.passwordValue
+        do EnterMultiOTRChatroomForm.enterOTRChatroom userNameMutable chatRoomNameMutable chatroomType password |> ignore
+    else
+       do EnterMultiOTRChatroomForm.enterOTRChatroom userNameMutable chatRoomNameMutable chatroomType password |> ignore
 
 //eventforhistory clicked
 let historyEventClicked (theText: #ComboBox)(e: EventArgs) = 

@@ -32,6 +32,13 @@ let mutable password: PasswordDeriveBytes = new PasswordDeriveBytes(SaveDialog.p
 let mutable keySize: int = 256
 let mutable keyBytes = password.GetBytes(keySize / 8)
 
+//Return sha256 from string
+let getSha256 (pass: string) = 
+    let pass: PasswordDeriveBytes = new PasswordDeriveBytes(pass, saltValueBytes, "SHA256", 12)
+    let returnBytes = pass.GetBytes(keySize / 8)
+    let returnString = BitConverter.ToString(returnBytes).Replace("-", "").ToLower()
+    returnString
+
 //Update password before encrypt and decrypt
 let updatepassword() =
     password <- new PasswordDeriveBytes(SaveDialog.passwordValue,saltValueBytes,"SHA256", 12)
