@@ -3,7 +3,7 @@ Hogeschool Rotterdam
 Student nummer: 0883388 en 0882342
 Secure WebSocket server for chat
 Library from - https://github.com/sta/websocket-sharp
-29-09-2015
+28-10-2015
 *)
 
 open System
@@ -16,17 +16,9 @@ open WebSocketSharp.Net
 open System.Collections.Generic
 open Newtonsoft.Json
 
-
-//One on one
-let mutable chatr = ""
-type input = { name: string; id: string }
-let mutable myArray = ResizeArray<input>()
-
-type ChatroomTypeAndPassword = { chatroomType: string; password: string }
-
-//For mutiple chat
+//Multiple chat
 type Incoming = {Message: string; Name: string; Chatroom: string}
-//Multichannel
+type ChatroomTypeAndPassword = { chatroomType: string; password: string }
 let mutable multiDict = new Dictionary<string, Dictionary<string, string>>()
 let mutable chatroomNameToType = new Dictionary<string, ChatroomTypeAndPassword>()
 
@@ -41,7 +33,7 @@ type MultiChat() =
       let name = this.Context.CookieCollection.[2].Value
       let mutable passwordCookieValue = null
       if this.Context.CookieCollection.Count > 3 then
-        passwordCookieValue <- this.Context.CookieCollection.[3].Value
+         passwordCookieValue <- this.Context.CookieCollection.[3].Value
 
       // Also set a type on a chatroom... Extra dictionary?
 
@@ -62,30 +54,74 @@ type MultiChat() =
             if chatroomNameToType.[theChatRoomName].chatroomType = "1" then
                 // Check multiDict hoeveel mensen erin zitten. Als er 1 persoon inzit dan mag andere erin
                 // anders kijken of je hem hier eruit kan kicken ( geen connectie maken )
-                do null
+                if multiDict.[theChatRoomName].Count = 2 then
+                   //Send message to client
+                   //Send in the same format as update so the client can process
+                   let mess = "{\"Message\":\"This Chatroom is busy, choose another chatroom name!\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+                   //Convert to Json
+                   let json = JsonConvert.SerializeObject(mess)
+                   //send the json to client
+                   do this.Sessions.SendTo(json, this.ID)
+                   do this.Sessions.CloseSession(this.ID)
+                else
+                   // Check if user already exists
+                   if ( multiDict.[theChatRoomName].ContainsKey(name)) then
+                     //Send message to client
+                     let mess = "{\"Message\":\"There is already someone with this name in the chatroom, please choose another name!\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+                     let json = JsonConvert.SerializeObject(mess)
+                     do this.Sessions.SendTo(json, this.ID)
+                     do this.Sessions.CloseSession(this.ID)
+                   else
+                     do multiDict.[theChatRoomName].Add(name, this.ID)
+
             elif chatroomNameToType.[theChatRoomName].chatroomType = "2" then
                 // Voordat je bij onOpen komt, bij login knop in program.fs, geef wachtwoord mee
                 // Deze wachtwoord word hier ook gecheckt, als hij niet klopt, eruit kicken ( geen connectie maken )
                 // Zorg client-side voor dat sha encryptie doet
                 // this.Sessions.CloseSession <-- voor degene die in deze code bevind, weet niet of deze klopt
+                if chatroomNameToType.[theChatRoomName].password = passwordCookieValue then
+                   // Check if user already exists
+                   if ( multiDict.[theChatRoomName].ContainsKey(name)) then
+                     //Send message to client
+                     let mess = "{\"Message\":\"There is already someone with this name in the chatroom, please choose another name!\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+                     let json = JsonConvert.SerializeObject(mess)
+                     do this.Sessions.SendTo(json, this.ID)
+                     do this.Sessions.CloseSession(this.ID)
+                   else
+                     do multiDict.[theChatRoomName].Add(name, this.ID)
+                   
+                else
+                   //Send message to client
+                   let mess = "{\"Message\":\"You entered the wrong password for this private chatroom\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+                   let json = JsonConvert.SerializeObject(mess)
+                   do this.Sessions.SendTo(json, this.ID)
+                   do this.Sessions.CloseSession(this.ID)
                 do null
             else
                 // Check if user already exists
                 if ( multiDict.[theChatRoomName].ContainsKey(name)) then
-                    // dikke error hier
-                    do Console.WriteLine("Username already exists in chatroom")
+                    //Send message to client
+                    let mess = "{\"Message\":\"There is already someone with this name in the chatroom, please choose another name!\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+                    let json = JsonConvert.SerializeObject(mess)
+                    do this.Sessions.SendTo(json, this.ID)
+                    do this.Sessions.CloseSession(this.ID)
                 else
                     do multiDict.[theChatRoomName].Add(name, this.ID)
         else
-            do null // YOU HAVE SET THE WRONG CHATROOMTYPE!!!
-      // if it does not exist, make new chatroom dictionary and add the client/user to it
-      // Also add the chatroomType if it does not exist.
+          let mess = "{\"Message\":\"YOU HAVE SET THE WRONG CHATROOMTYPE!!!\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+          let json = JsonConvert.SerializeObject(mess)
+          do this.Sessions.SendTo(json, this.ID)
+          do this.Sessions.CloseSession(this.ID)
+          
+      
+      // if chatroom does not exist, make new chatroom dictionary and add the client/user to it
+      // Also add the chatroomType if the chatroom does not exist.
       else
         let namesDictionary = new Dictionary<string, string>()
         namesDictionary.Add(name, this.ID)
         do multiDict.Add(theChatRoomName, namesDictionary)
-        let newd = { chatroomType = chatroomTypeCookieValue; password = passwordCookieValue }
-        do chatroomNameToType.Add(theChatRoomName, newd)
+        let chatroomTypeAndPassword: ChatroomTypeAndPassword = { chatroomType = chatroomTypeCookieValue; password = passwordCookieValue }
+        do chatroomNameToType.Add(theChatRoomName, chatroomTypeAndPassword)
       do Console.WriteLine("OnOpen")
       
       //SEND list to all clients in the chatroom when someone enters the chatroom
@@ -100,13 +136,14 @@ type MultiChat() =
             do listOfUsers <- listOfUsers + ","
         listOfUsersCounter <- listOfUsersCounter + 1
 
-      //Send the list to all in the chatroom
+      //Send the new update list to all in the chatroom
+      //If the listofusers maintain the same. The client will do nothing
       for i in multiDict.[theChatRoomName] do
         let mess = "{ \"Message\":\"Update\", \"listOfUsers\": [" + listOfUsers + "]}"
         let json = JsonConvert.SerializeObject(mess)
         this.Sessions.SendTo(json , i.Value)
     
-    //Get the messages  
+    //Get the messages
     override this.OnMessage (e:MessageEventArgs) =
       //Incoming data
       let data = e.Data
@@ -114,45 +151,50 @@ type MultiChat() =
       let income: Incoming = JsonConvert.DeserializeObject<Incoming>(json)
       //get the var
       let theChatRoomName = this.Context.CookieCollection.[0].Value
-      let Name = this.Context.CookieCollection.[2].Value
+      let name = this.Context.CookieCollection.[2].Value
       let incomingMessage = income.Message
       let sendTo = income.Name
-      //loop threw list of users for the chatroom                
+      //loop threw list of users for the chatroom
       for i in multiDict.[theChatRoomName] do
         //Send message to whom it belongs to
         if i.Key = sendTo then
-           //Send in the same format as update so the client can process
-           let mess = "{\"Message\":\"" + incomingMessage + "\", \"listOfUsers\": [{\"Name\":\"" + Name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+           let mess = "{\"Message\":\"" + incomingMessage + "\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
            //Convert to Json
            let json = JsonConvert.SerializeObject(mess)
            //send the json to client
            do this.Sessions.SendTo(json, i.Value)
-      //do Console.WriteLine("data: {0}", e.Data)
-            
+      
     override this.OnError ( e : ErrorEventArgs ) =
       do Console.WriteLine("OnError")
-      
+    
+    //Get the Onclose
     override this.OnClose ( e : CloseEventArgs) =
-
+        
+        let bas = true
         let theChatRoomName = this.Context.CookieCollection.[0].Value
         let name = this.Context.CookieCollection.[2].Value
 
+        //TODO: delete the right session from value incase when entered the same name
+        //CHECK: And We only want delete the one that exists
         if multiDict.[theChatRoomName].Remove(name) then
            do Console.WriteLine("Deleted from list")
-           
-        if multiDict.[theChatRoomName].Count = 0 then
-            do multiDict.Remove(theChatRoomName) |> ignore
-            do chatroomNameToType.Remove(theChatRoomName) |> ignore
-
-        //Send update to client about who to remove from list
+               
+        //Send update to client(s) about who to remove from list
         for i in multiDict.[theChatRoomName] do
-           //Send in the same format as update so the client can process
            let mess = "{\"Message\":\"UpdateClose\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
            //Convert to Json
            let json = JsonConvert.SerializeObject(mess)
            //send the json to client
            do this.Sessions.SendTo(json, i.Value)
-          
+
+        
+        
+        //Remove Chatroom if nobody is in
+        if multiDict.[theChatRoomName].Count = 0 then
+            do multiDict.Remove(theChatRoomName) |> ignore
+            do chatroomNameToType.Remove(theChatRoomName) |> ignore
+        
+        //Debug
         do Console.WriteLine("OnClose")
 
 //Set port and intialize websocket
