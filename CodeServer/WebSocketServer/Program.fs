@@ -108,7 +108,7 @@ type MultiChat() =
                 else
                     do multiDict.[theChatRoomName].Add(name, this.ID)
         else
-          let mess = "{\"Message\":\"YOU HAVE SET THE WRONG CHATROOMTYPE!!!\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+          let mess = "{\"Message\":\"This chatroom already exists under another chatroomType, please choose another chatroomType if you wish to connect to this chatroom.\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
           let json = JsonConvert.SerializeObject(mess)
           do this.Sessions.SendTo(json, this.ID)
           do this.Sessions.CloseSession(this.ID)
@@ -174,20 +174,25 @@ type MultiChat() =
         let theChatRoomName = this.Context.CookieCollection.[0].Value
         let name = this.Context.CookieCollection.[2].Value
 
+        
+        
         //TODO: delete the right session from value incase when entered the same name
         //CHECK: And We only want delete the one that exists
-        if multiDict.[theChatRoomName].Remove(name) then
-           do Console.WriteLine("Deleted from list")
-               
-        //Send update to client(s) about who to remove from list
-        for i in multiDict.[theChatRoomName] do
-           let mess = "{\"Message\":\"UpdateClose\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
-           //Convert to Json
-           let json = JsonConvert.SerializeObject(mess)
-           //send the json to client
-           do this.Sessions.SendTo(json, i.Value)
+        //multiDict.[theChatRoomName].[name]
 
-        
+        //if multiDict.[theChatRoomName].Remove(name) then
+        if multiDict.[theChatRoomName].ContainsKey(name) && multiDict.[theChatRoomName].[name] = this.ID then
+            do multiDict.[theChatRoomName].Remove(name) |> ignore
+            do Console.WriteLine("Deleted from list") |> ignore
+               
+            //Send update to client(s) about who to remove from list
+            for i in multiDict.[theChatRoomName] do
+               let mess = "{\"Message\":\"UpdateClose\", \"listOfUsers\": [{\"Name\":\"" + name + "\", \"Chatroom\":\"" + theChatRoomName + "\"}]}"
+               //Convert to Json
+               let json = JsonConvert.SerializeObject(mess)
+               //send the json to client
+               do this.Sessions.SendTo(json, i.Value)
+           
         
         //Remove Chatroom if nobody is in
         if multiDict.[theChatRoomName].Count = 0 then
