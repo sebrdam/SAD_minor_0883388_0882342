@@ -40,6 +40,8 @@ let mutable buttonReload : PictureBox = null
 let mutable reloadToolTip : ToolTip = null
 let mutable mainFormObject : Form = null
 
+
+
 // Generate DSA Key
 DSAKey.generateDSAKey()
 
@@ -53,7 +55,7 @@ let EnterMultiOTRChatRoomValidation userName chatRoomName =
     if( chatRoomNameMutable = "") then
         chatRoomNameMutable <- Functions.RandomStringGenerator(8)
     //If chatroom is private ask for password
-    if chatroomType = "2" then
+    if chatroomType = Constants.ChatroomTypePrivate then
        let result: DialogResult = LoginChatroomDialog.showDialog("Password for chatroom") 
        if result =  DialogResult.OK then
         password <- LoginChatroomDialog.passwordValue
@@ -74,8 +76,8 @@ let historyEventClicked (theText: #ComboBox)(e: EventArgs) =
     do null 
 
 //Reload combobox clicked
-let reloadClicked (theText: #ComboBox)(e: EventArgs) = 
-    do theText.Items.Clear()
+let reloadClicked (historyComboBoxValue: #ComboBox)(e: EventArgs) = 
+    do historyComboBoxValue.Items.Clear()
     let readTheConfigdata = SaveData.readConfigData()
     for b in readTheConfigdata do
       let json: string = JsonConvert.DeserializeObject(b).ToString()
@@ -84,19 +86,19 @@ let reloadClicked (theText: #ComboBox)(e: EventArgs) =
       let theNames = income.Name
       
       //Debug test the secret
-      let test = income.ListOfUsers.[0].Key
-      Console.WriteLine("thesecret: " + test)
+      if(Constants.DebugMode) then
+          Console.WriteLine("The secret: " + income.ListOfUsers.[0].Key)
       
-      do theText.Items.Add(theChatroomNames + " -> " + theNames) |> ignore 
-      do theText.Text <- "Choose History"
+      do historyComboBoxValue.Items.Add(theChatroomNames + " -> " + theNames) |> ignore 
+      do historyComboBoxValue.Text <- "Choose History"
 
 let chatroomTypeChanged (e: EventArgs) =
     if(chatroomTypeOneToOne.Checked) then
-       chatroomType <- "1" 
+       chatroomType <- Constants.ChatroomTypeOneOnOne
     elif(chatroomTypePrivate.Checked) then
-       chatroomType <- "2"
+       chatroomType <- Constants.ChatroomTypePrivate
     else
-       chatroomType <- "3"
+       chatroomType <- Constants.ChatroomTypePrivate
 
 //Account login clicked
 let passwordLoginButtonClicked (passwordButtonLogin: #Button) (comboBox: #ComboBox) (buttonReload: #PictureBox) (e: EventArgs) =
