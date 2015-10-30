@@ -22,37 +22,36 @@ open System.Windows.Markup
 open Newtonsoft.Json
 
 let mutable userName : TextBox = null
-let mutable buddyName : TextBox = null
 let mutable chatroomName : TextBox = null
-let mutable chatroomType: string = "1" 
 
+let mutable chatroomType: string = "1" 
 let mutable chatroomTypeOneToOne : RadioButton = null
 let mutable chatroomTypePrivate : RadioButton = null
 let mutable chatroomTypePublic : RadioButton = null
 
-//generate Private DSAkeys
+let mutable logo : PictureBox = null
+let mutable usernameLabel : Label = null
+let mutable chatroomNameLabel : Label = null
+let mutable buttonSubmit : Button = null
+let mutable chooseChatroom : GroupBox = null
+let mutable passwordLoginButton : Button = null
+let mutable historyComboBox : ComboBox = null
+let mutable buttonReload : PictureBox = null
+let mutable reloadToolTip : ToolTip = null
+let mutable mainFormObject : Form = null
+
+// Generate DSA Key
 DSAKey.generateDSAKey()
 
-// Some random generator fished from the internet
-// http://stackoverflow.com/questions/22340351/f-create-random-string-of-letters-and-numbers
-let randomStringGenerator = 
-    let chars = "ABCDEFGHIJKLMNOPQRSTUVWUXYZ0123456789"
-    let charsLen = chars.Length
-    let random = System.Random()
-
-    fun len -> 
-        let randomChars = [|for i in 0..len -> chars.[random.Next(charsLen)]|]
-        new System.String(randomChars)
-
 // Generate random values if you don't fill them in. Ninja's love this.
-let EnterOTRChatRoomValidation userName chatRoomName =
+let EnterMultiOTRChatRoomValidation userName chatRoomName =
     let mutable password = ""
     let mutable userNameMutable = userName
     let mutable chatRoomNameMutable = chatRoomName
     if( userNameMutable = "") then
-        userNameMutable <- randomStringGenerator(6)
+        userNameMutable <- Functions.RandomStringGenerator(6)
     if( chatRoomNameMutable = "") then
-        chatRoomNameMutable <- randomStringGenerator(8)
+        chatRoomNameMutable <- Functions.RandomStringGenerator(8)
     //If chatroom is private ask for password
     if chatroomType = "2" then
        let result: DialogResult = LoginChatroomDialog.showDialog("Password for chatroom") 
@@ -157,53 +156,44 @@ let passwordLoginButtonClicked (passwordButtonLogin: #Button) (comboBox: #ComboB
 //The main Page
 let mainForm title =
   
-  //Logo
-  let mutable logo = new PictureBox()
+  logo <- new PictureBox()
   logo.BackColor <- Color.Transparent
   logo.ImageLocation <- "chatkey.png" 
   logo.Location <- new Point(180, 24)
   logo.Size <- new System.Drawing.Size(150, 100)
 
-  //Text labels
-  let mutable label1 = new System.Windows.Forms.Label()
-  let mutable label2 = new System.Windows.Forms.Label()
-  let mutable label3 = new System.Windows.Forms.Label()
+  usernameLabel <- new Label()
+  usernameLabel.Font <- new System.Drawing.Font("Tahoma", 12.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
+  usernameLabel.Location <- Point(logo.Left - 15, logo.Height + logo.Top + 20)
+  usernameLabel.Name <- "usernameLabel"
+  usernameLabel.Size <- new System.Drawing.Size(160, 24)
+  usernameLabel.TabIndex <- 2
+  usernameLabel.Text <- "My name:"
+  usernameLabel.AutoSize <- true
   
-  //Username label
-  label1.Font <- new System.Drawing.Font("Tahoma", 12.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
-  label1.Location <- Point(logo.Left - 15, logo.Height + logo.Top + 20)
-  label1.Name <- "label1"
-  label1.Size <- new System.Drawing.Size(160, 24)
-  label1.TabIndex <- 2
-  label1.Text <- "My Name:"
-  label1.AutoSize <- true
-  
-  //text box
   userName <- new TextBox()
   userName.BorderStyle <- BorderStyle.FixedSingle
-  userName.Location <- Point(label1.Left, label1.Height + label1.Top + 10)
+  userName.Location <- Point(usernameLabel.Left, usernameLabel.Height + usernameLabel.Top + 10)
   userName.Size <- new System.Drawing.Size(160, 30)
   userName.AutoSize <- false
   userName.Font <- new System.Drawing.Font("Tahoma", 12.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
 
-  //ChatroomName label
-  label3.Font <- new System.Drawing.Font("Tahoma", 12.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
-  label3.Location <- new Point(userName.Left, userName.Height + userName.Top + 20)
-  label3.Name <- "label3"
-  label3.Size <- new System.Drawing.Size(160, 24)
-  label3.TabIndex <- 2
-  label3.Text <- "ChatRoom:"
+  chatroomNameLabel <- new Label()
+  chatroomNameLabel.Font <- new System.Drawing.Font("Tahoma", 12.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
+  chatroomNameLabel.Location <- new Point(userName.Left, userName.Height + userName.Top + 20)
+  chatroomNameLabel.Name <- "chatroomLabel"
+  chatroomNameLabel.Size <- new System.Drawing.Size(160, 24)
+  chatroomNameLabel.TabIndex <- 2
+  chatroomNameLabel.Text <- "Chatroom:"
   
-  //text box
   chatroomName <- new TextBox()
   chatroomName.BorderStyle <- BorderStyle.FixedSingle
-  chatroomName.Location <- Point(label3.Left, label3.Height + label3.Top + 10)
+  chatroomName.Location <- Point(chatroomNameLabel.Left, chatroomNameLabel.Height + chatroomNameLabel.Top + 10)
   chatroomName.Size <- new System.Drawing.Size(160, 30)
   chatroomName.AutoSize <- false
   chatroomName.Font <- new System.Drawing.Font("Tahoma", 12.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
 
-  //Button chatroom Login
-  let buttonSubmit = new Button(Location=new Point(chatroomName.Left, chatroomName.Height + chatroomName.Top + 20), Text="Login")
+  buttonSubmit <- new Button(Location=new Point(chatroomName.Left, chatroomName.Height + chatroomName.Top + 20), Text="Login")
   buttonSubmit.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
   buttonSubmit.BackColor <- Color.LightGray
   buttonSubmit.FlatStyle <- FlatStyle.Flat
@@ -212,19 +202,17 @@ let mainForm title =
   buttonSubmit.Size <- new System.Drawing.Size(160, 30)
   buttonSubmit.AutoSize <- false
 
-  //Make radiobuttons
-  let groupBox1 = new GroupBox()
-
-  groupBox1.Location <- new System.Drawing.Point(15, 170)
-  groupBox1.Name <- "groupBox1"
-  groupBox1.Size <- new System.Drawing.Size(120, 120)
-  groupBox1.TabIndex <- 0
-  groupBox1.TabStop <- false
-  groupBox1.Text <- "Choose Chatroom"
+  chooseChatroom <- new GroupBox()
+  chooseChatroom.Location <- new System.Drawing.Point(15, 170)
+  chooseChatroom.Name <- "groupBox1"
+  chooseChatroom.Size <- new System.Drawing.Size(120, 120)
+  chooseChatroom.TabIndex <- 0
+  chooseChatroom.TabStop <- false
+  chooseChatroom.Text <- "Choose Chatroom"
   
   chatroomTypeOneToOne <- new RadioButton()
   chatroomTypeOneToOne.Location <- new System.Drawing.Point(30, 190)
-  chatroomTypeOneToOne.Name <- "radioButton1"
+  chatroomTypeOneToOne.Name <- "chatroomTypeOneToOne"
   chatroomTypeOneToOne.Size <- new System.Drawing.Size(100, 30)
   chatroomTypeOneToOne.TabIndex <- 4
   chatroomTypeOneToOne.Text <- "1 on 1"
@@ -233,7 +221,7 @@ let mainForm title =
 
   chatroomTypePrivate <- new RadioButton()
   chatroomTypePrivate.Location <- new System.Drawing.Point(30, 220)
-  chatroomTypePrivate.Name <- "radioButton1"
+  chatroomTypePrivate.Name <- "chatroomTypePrivate"
   chatroomTypePrivate.Size <- new System.Drawing.Size(100, 30)
   chatroomTypePrivate.TabIndex <- 4
   chatroomTypePrivate.Text <- "MPOTR Private"
@@ -241,15 +229,13 @@ let mainForm title =
 
   chatroomTypePublic <- new RadioButton()
   chatroomTypePublic.Location <- new System.Drawing.Point(30, 250)
-  chatroomTypePublic.Name <- "radioButton1"
+  chatroomTypePublic.Name <- "chatroomTypePublic"
   chatroomTypePublic.Size <- new System.Drawing.Size(100, 30)
   chatroomTypePublic.TabIndex <- 4
   chatroomTypePublic.Text <- "MPOTR Public"
   chatroomTypePublic.CheckedChanged.Add(chatroomTypeChanged)
-  
 
-  //Account login
-  let passwordLoginButton = new Button(Location=new Point(buttonSubmit.Left, buttonSubmit.Height + buttonSubmit.Top + 20), Text="Account Login")
+  passwordLoginButton <- new Button(Location=new Point(buttonSubmit.Left, buttonSubmit.Height + buttonSubmit.Top + 20), Text="Account Login")
   passwordLoginButton.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
   passwordLoginButton.BackColor <- Color.LightGray
   passwordLoginButton.FlatStyle <- FlatStyle.Flat
@@ -258,50 +244,47 @@ let mainForm title =
   passwordLoginButton.Size <- new System.Drawing.Size(160, 30)
   passwordLoginButton.AutoSize <- false
 
-  //combobox for history
-  let theComboBox = new ComboBox(Location=new Point(buttonSubmit.Left, buttonSubmit.Height + buttonSubmit.Top + 20))
-  theComboBox.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
-  theComboBox.BackColor <- Color.LightGray
-  theComboBox.FlatStyle <- FlatStyle.Flat
-  theComboBox.Size <- new System.Drawing.Size(160, 30)
+  historyComboBox <- new ComboBox(Location=new Point(buttonSubmit.Left, buttonSubmit.Height + buttonSubmit.Top + 20))
+  historyComboBox.Font <- new System.Drawing.Font("Tahoma", 10.0F, System.Drawing.FontStyle.Bold, System.Drawing.GraphicsUnit.Point, ((byte)(0)))
+  historyComboBox.BackColor <- Color.LightGray
+  historyComboBox.FlatStyle <- FlatStyle.Flat
+  historyComboBox.Size <- new System.Drawing.Size(160, 30)
 
-  //Reload button
-  let mutable buttonReload = new PictureBox()
+  buttonReload <- new PictureBox()
   buttonReload.BackColor <- Color.Transparent
   buttonReload.ImageLocation <- "rec.png" 
-  buttonReload.Location <- new Point(theComboBox.Left - 30, theComboBox.Height + theComboBox.Top - 22)
+  buttonReload.Location <- new Point(historyComboBox.Left - 30, historyComboBox.Height + historyComboBox.Top - 22)
   buttonReload.Size <- new System.Drawing.Size(30, 30)
   buttonReload.Cursor <- Cursors.Hand
-  let ttip = new ToolTip()
-  ttip.SetToolTip(buttonReload,"Click here to reload saved history")
-  buttonReload.Click.Add(reloadClicked (theComboBox))
-  //Click on Account button
-  passwordLoginButton.Click.Add(passwordLoginButtonClicked passwordLoginButton theComboBox buttonReload)
-  theComboBox.SelectedValueChanged.Add(historyEventClicked (theComboBox))
 
-  // main form
-  let form1 = new Form(Visible=true)
-  form1.Text <- title
-  form1.Size <- new Size(512, 512)
-  form1.BackColor <- Color.Lavender
-  //Add labels and textboxs
-  form1.Controls.Add(logo)
-  form1.Controls.Add(userName)
-  form1.Controls.Add(buddyName)
-  form1.Controls.Add(chatroomName)
-  form1.Controls.Add(label1)
-  form1.Controls.Add(label2)
-  form1.Controls.Add(label3)
-  form1.Controls.Add(theComboBox)
-  form1.Controls.Add(buttonReload)
-  form1.Controls.Add(passwordLoginButton)
-  form1.Controls.Add(chatroomTypeOneToOne)
-  form1.Controls.Add(chatroomTypePrivate)
-  form1.Controls.Add(chatroomTypePublic)
-  form1.Controls.Add(groupBox1)
+  reloadToolTip <- new ToolTip()
+  reloadToolTip.SetToolTip(buttonReload,"Click here to reload saved history")
+
+  buttonReload.Click.Add(reloadClicked (historyComboBox))
+
+  passwordLoginButton.Click.Add(passwordLoginButtonClicked passwordLoginButton historyComboBox buttonReload)
+  historyComboBox.SelectedValueChanged.Add(historyEventClicked (historyComboBox))
+
+  mainFormObject <- new Form(Visible=true)
+  mainFormObject.Text <- title
+  mainFormObject.Size <- new Size(512, 512)
+  mainFormObject.BackColor <- Color.Lavender
+
+  mainFormObject.Controls.Add(logo)
+  mainFormObject.Controls.Add(userName)
+  mainFormObject.Controls.Add(chatroomName)
+  mainFormObject.Controls.Add(usernameLabel)
+  mainFormObject.Controls.Add(chatroomNameLabel)
+  mainFormObject.Controls.Add(historyComboBox)
+  mainFormObject.Controls.Add(buttonReload)
+  mainFormObject.Controls.Add(passwordLoginButton)
+  mainFormObject.Controls.Add(chatroomTypeOneToOne)
+  mainFormObject.Controls.Add(chatroomTypePrivate)
+  mainFormObject.Controls.Add(chatroomTypePublic)
+  mainFormObject.Controls.Add(chooseChatroom)
   
-  //First time in app
-  theComboBox.Hide()
+  // -- Parameters to set when opening the application
+  historyComboBox.Hide()
   buttonReload.Hide()
  
   if File.Exists(SaveData.CONFIG_FILE) then
@@ -309,13 +292,11 @@ let mainForm title =
   else
      passwordLoginButton.Text <- "Create user Account"
 
-  //login to the chatroom
-  buttonSubmit.Click.Add (fun _ -> do EnterOTRChatRoomValidation userName.Text chatroomName.Text) |> ignore
-  form1.Controls.Add(buttonSubmit)
+  buttonSubmit.Click.Add (fun _ -> do EnterMultiOTRChatRoomValidation userName.Text chatroomName.Text) |> ignore
+  mainFormObject.Controls.Add(buttonSubmit)
      
   //Return
-  form1
-
+  mainFormObject
 
 //Start the app
 let theForm = mainForm "Sidbas Secure OTR Chat" 
