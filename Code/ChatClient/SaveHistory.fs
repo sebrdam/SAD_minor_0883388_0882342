@@ -1,4 +1,4 @@
-﻿module SaveData
+﻿module SaveHistory
 
 (*
 Hogeschool Rotterdam
@@ -23,11 +23,17 @@ type user = {Name: string; Key: string; DSA: string}
 type Incoming = {Name: string; Chatroom: string; ListOfUsers: ResizeArray<user> }
 
 let CONFIG_FILE = "data.dat"
-let iVBytes = Encoding.ASCII.GetBytes("@1B2c3D4e5F6g7H8")
-let saltValueBytes = Encoding.ASCII.GetBytes("s@1tValue")
+
+//let iVBytes = Encoding.ASCII.GetBytes(SaveIV.iV)
+//let saltValueBytes = Encoding.ASCII.GetBytes(SaveIV.salt)
+
+let iVBytes = Convert.FromBase64String(SaveIV.iV)
+let saltValueBytes = Convert.FromBase64String(SaveIV.salt)
+
+
 
 //make var mutable for uodate password values when lloggedin
-let mutable password: PasswordDeriveBytes = new PasswordDeriveBytes(SaveDialog.passwordValue,saltValueBytes,"SHA256", 12)
+let mutable password: PasswordDeriveBytes = new PasswordDeriveBytes(LoginAccountDialog.passwordValue,saltValueBytes,"SHA256", 12)
 // make keysize can also be 192 or 128
 let mutable keySize: int = 256
 let mutable keyBytes = password.GetBytes(keySize / 8)
@@ -41,7 +47,7 @@ let getSha256 (pass: string) =
 
 //Update password before encrypt and decrypt
 let updatepassword() =
-    password <- new PasswordDeriveBytes(SaveDialog.passwordValue,saltValueBytes,"SHA256", 12)
+    password <- new PasswordDeriveBytes(LoginAccountDialog.passwordValue,saltValueBytes,"SHA256", 12)
     keySize <- 256
     keyBytes <- password.GetBytes(keySize / 8)
     do null
@@ -61,7 +67,7 @@ let updateUser chatroomName buddyName key DSA myName =
         //Encrypt for every line the json
         //First decrypt the lines to check for updates
         for b in read do 
-          let decryptText = DecryptAES.DecryptAESMessage.CeateDecryptedMessage(b, keyBytes, iVBytes)
+          let decryptText = DecryptAES.DecryptAESMessage.CreateDecryptedMessage(b, keyBytes, iVBytes)
           let json: string = JsonConvert.DeserializeObject(decryptText).ToString()
           let income: Incoming = JsonConvert.DeserializeObject<Incoming>(json)
           let theChatroomName = income.Chatroom
@@ -114,7 +120,7 @@ let readConfigData() =
     if File.Exists(CONFIG_FILE) then
        let read = File.ReadAllLines(CONFIG_FILE)
        for b in read do
-             let decryptText = DecryptAES.DecryptAESMessage.CeateDecryptedMessage(b, keyBytes, iVBytes)
+             let decryptText = DecryptAES.DecryptAESMessage.CreateDecryptedMessage(b, keyBytes, iVBytes)
              returnData.Add(decryptText)
     //returnData
     returnData.ToArray()
@@ -127,7 +133,7 @@ let checkPassword () =
     let read = File.ReadAllLines(CONFIG_FILE)
     if not (read.Length = 0) then
            //Read only first line of file and check if decrypted correctly
-           let decryptText = DecryptAES.DecryptAESMessage.CeateDecryptedMessage(read.[0], keyBytes, iVBytes)
+           let decryptText = DecryptAES.DecryptAESMessage.CreateDecryptedMessage(read.[0], keyBytes, iVBytes)
            let mutable json: string  = ""
            try
               do json <- JsonConvert.DeserializeObject(decryptText).ToString()
@@ -138,5 +144,3 @@ let checkPassword () =
     //return
     isCorrect
 
-
-    

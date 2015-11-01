@@ -1,4 +1,4 @@
-﻿module SaveDialog
+﻿module LoginAccountDialog
 
 (*
 Hogeschool Rotterdam
@@ -14,7 +14,7 @@ open System.Drawing
 let mutable passwordValue = ""
 let mutable isLoggedIn: bool = false
 
-let showSaveDialog (text) =
+let showDialog (text) =
 
     let form = new Form()
     let label = new Label()

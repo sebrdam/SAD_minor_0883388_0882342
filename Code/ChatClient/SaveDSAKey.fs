@@ -1,12 +1,10 @@
-﻿module DSAKey
-
+﻿module SaveDSAKey
 
 (*
 Hogeschool Rotterdam
 Student nummer: 0883388 en 0882342
 
 Save and get DSA key
-
 
 27-10-2015
 *)
@@ -29,21 +27,12 @@ type Keys = {HexParamG: string; HexParamP: string; HexParamQ: string; HexParamX:
 
 let KEY_FILE = "DSA.key"
 
-let randomStringGenerator = 
-    let chars = "ABCDEFGHIJKLMNOPQRSTUVWUXYZ0123456789"
-    let charsLen = chars.Length
-    let random = System.Random()
-
-    fun len -> 
-        let randomChars = [|for i in 0..len -> chars.[random.Next(charsLen)]|]
-        new System.String(randomChars)
-
 //Ggenerate DSA keys from OTRLIB and use it forever
 let generateDSAKey() = 
     if not (File.Exists(KEY_FILE)) then
        
-       let myOTRSessionManager = new OTRSessionManager(randomStringGenerator(50))
-       let randomBuddyname = randomStringGenerator(50)
+       let myOTRSessionManager = new OTRSessionManager(Functions.RandomStringGenerator(50))
+       let randomBuddyname = Functions.RandomStringGenerator(50)
        myOTRSessionManager.CreateOTRSession(randomBuddyname)
        let newKeyString = "{ \"HexParamG\":\"" + myOTRSessionManager.GetSessionDSAHexParams(randomBuddyname).GetHexParamG() + "\",\"HexParamP\":\"" + myOTRSessionManager.GetSessionDSAHexParams(randomBuddyname).GetHexParamP() + "\", \"HexParamQ\":\"" + myOTRSessionManager.GetSessionDSAHexParams(randomBuddyname).GetHexParamQ() + "\", \"HexParamX\":\"" + myOTRSessionManager.GetSessionDSAHexParams(randomBuddyname).GetHexParamX() + "\" }"
        let newJson = JsonConvert.SerializeObject(newKeyString)

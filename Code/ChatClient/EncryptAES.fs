@@ -8,8 +8,7 @@ https://msdn.microsoft.com/en-us/library/system.security.cryptography.aescryptos
 Use aescryptoserviceprovider over rijndaelmanaged
 http://stackoverflow.com/questions/957388/why-are-rijndaelmanaged-and-aescryptoserviceprovider-returning-different-results
 
-The IV (Initialization vector) moet elke keer onieuw gegenereerd worden Met altijd dezelde IV bytes zal data kunnen worden achterhaald
-16-09-2015
+01-11-2015
 *)
 
 
@@ -37,7 +36,7 @@ module EncryptAES
       //Start the AES
       //Performs symmetric encryption and decryption using the Cryptographic Application Programming Interfaces (CAPI) 
       //implementation of the Advanced Encryption Standard (AES) algorithm
-      // Kan ook Rijndeal gebruiken is volgens mij hetzelfde
+      //Also can use Rijndeal is the almost the same as AesCryptoServiceProvider
       //let symmetricKey = new RijndaelManaged()
       //symmetricKey.Mode = CipherMode.CBC |> ignore
       let aes = new AesCryptoServiceProvider()

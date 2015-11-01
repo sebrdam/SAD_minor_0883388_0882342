@@ -8,8 +8,7 @@ https://msdn.microsoft.com/en-us/library/system.security.cryptography.aescryptos
 Use aescryptoserviceprovider over rijndaelmanaged
 http://stackoverflow.com/questions/957388/why-are-rijndaelmanaged-and-aescryptoserviceprovider-returning-different-results
 
-The IV (Initialization vector) moet elke keer onieuw gegenereerd worden Met altijd dezelde IV bytes zal data kunnen worden achterhaald
-16-09-2015 
+01-11-2015 
 *)
 
 module DecryptAES
@@ -29,7 +28,7 @@ module DecryptAES
      open System.Collections.Generic
      
      
-     let CeateDecryptedMessage (ciphertext: string, key: byte [], IV: byte []) =
+     let CreateDecryptedMessage (ciphertext: string, key: byte [], IV: byte []) =
       
       //Encode the text in array bytes
       let cipherTextBytes = System.Convert.FromBase64String(ciphertext)
@@ -65,7 +64,7 @@ module DecryptAES
       //zet de decrypted tekst om naar string
       let plainText: string = Encoding.UTF8.GetString(plainTextBytes, 0, decryptedByteCount);
       
-      //Return decrypted string.   
+      //Return decrypted string.
       plainText
       
 

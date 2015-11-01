@@ -29,7 +29,7 @@ open System.Collections.Generic
 open System.Threading
 open System.Security.Cryptography
 
-open WaitingProcesForm
+open WaitProcessingKeysForm
 open WebSocketConnect
 
 // -- Define user and incoming type's, used for JSON received from WebSocket server.
@@ -56,7 +56,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   else
     webSocket.SetCookie (new Net.Cookie ("chatroomType", "3"))
   
-  webSocket.SetCookie (new Net.Cookie ("password", SaveData.getSha256(password)))
+  webSocket.SetCookie (new Net.Cookie ("password", SaveHistory.getSha256(password)))
 
   // -- Windows Form variables
   let mutable enterMessageTextBox: RichTextBox = null
@@ -154,13 +154,13 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   //Only when Loggedin
   let setSMPSecretFromConfigData (buddyName) = 
     let mutable otrsession: OTRSessionManager = null
-    let readTheConfigdata = SaveData.readConfigData()
+    let readTheConfigdata = SaveHistory.readConfigData()
     // todo: break from this for loop
     if readTheConfigdata.Length <> 0 then
        //Read saved History data
        for configData in readTheConfigdata do
          let incomingJSON: string = JsonConvert.DeserializeObject(configData).ToString()
-         let incomingJSONDeserialized: SaveData.Incoming = JsonConvert.DeserializeObject<SaveData.Incoming>(incomingJSON)
+         let incomingJSONDeserialized: SaveHistory.Incoming = JsonConvert.DeserializeObject<SaveHistory.Incoming>(incomingJSON)
          //See if the chatroom and loginname is in the Config history
          if incomingJSONDeserialized.Chatroom = chatRoomName && incomingJSONDeserialized.Name = userName && incomingJSONDeserialized.ListOfUsers.Count > 0  && not (incomingJSONDeserialized.ListOfUsers.[0].Key = "") then
              //Set the secret for this chatroom. Always 0 because we store first value with own name and secret
@@ -219,7 +219,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
           SMPButton.ImageLocation <- "smp.png"
           SMPToolTip.ToolTipTitle <- CONST_SMP_MESSAGE_CHECK 
           //On eventReady - If loggedin Check fingerprints DSA and set SMP
-          if SaveDialog.isLoggedIn then
+          if LoginAccountDialog.isLoggedIn then
              do setSMPSecretFromConfigData(e.GetSessionID()) |> ignore
       | OTR_EVENT.DEBUG ->
           Console.WriteLine(" {0} ",e.GetMessage())
@@ -251,11 +251,11 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
     myOTRSessionManager <- new OTRSessionManager(myUniqueId)
     myOTRSessionManager.OnOTREvent.Add(OTRManagerEventHandler)
     //Get the private DSA keys
-    let DSAKeys = DSAKey.getDSAKey()
+    let DSAKeys = SaveDSAKey.getDSAKey()
     let mutable param: DSAKeyParams = null
     for DSAKey in DSAKeys do
       let json: string = JsonConvert.DeserializeObject(DSAKey).ToString()
-      let keys: DSAKey.Keys = JsonConvert.DeserializeObject<DSAKey.Keys>(json)
+      let keys: SaveDSAKey.Keys = JsonConvert.DeserializeObject<SaveDSAKey.Keys>(json)
       param <- OTR.Interface.DSAKeyParams(keys.HexParamP, keys.HexParamQ, keys.HexParamG, keys.HexParamX)
     //Create Session with privae DSA Keys
     myOTRSessionManager.CreateOTRSession(myBuddyUniqueId, param)
@@ -281,11 +281,11 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
                                  if result =  DialogResult.OK then
                                     let henk = ""
                                     try
-                                      SaveData.updateUser (chatRoomName) (userName) (theSecretSMPText) "" (userName)
+                                      SaveHistory.updateUser (chatRoomName) (userName) (theSecretSMPText) "" (userName)
                                       receiveMessageTextBox (Color.ForestGreen) ("Chat") ( "You have saved the chatroom!") (conversationTextBox) (mainFormObject)
                                       for OTRSessionManager in OTRSessionManagerList do
                                        do OTRSessionManager.Value.EncryptMessage(OTRSessionManager.Key,  "has saved the chatroom" ) |> ignore
-                                       do SaveData.updateUser chatRoomName OTRSessionManager.Key theSecretSMPText (OTRSessionManager.Value.GetMyBuddyFingerPrint(OTRSessionManager.Key)) userName |> ignore
+                                       do SaveHistory.updateUser chatRoomName OTRSessionManager.Key theSecretSMPText (OTRSessionManager.Value.GetMyBuddyFingerPrint(OTRSessionManager.Key)) userName |> ignore
                                     with | :? ApplicationException as ex -> printfn "exception %s" ex.Message)
 
   let saveButtonToolTip = new ToolTip()
@@ -409,7 +409,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   mainFormObject.Controls.Add(saveButton)
 
   //dont show save if not is logged in
-  if not SaveDialog.isLoggedIn then
+  if not LoginAccountDialog.isLoggedIn then
      saveButton.Hide()
   
   //Add event when form is closed
@@ -437,9 +437,9 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
 
      //If update receive all 
      elif  incomingJSONDeserialized.Message = "Update" then
-        let start = WaitingProcesForm.waitForm() 
+        let start = WaitProcessingKeysForm.waitForm() 
         //Dialog for processing keys
-        WaitingProcesForm.waitDialog.Update()
+        WaitProcessingKeysForm.waitDialog.Update()
 
         if firstTimeUpdate then
             for user in incomingJSONDeserialized.ListOfUsers do
@@ -459,7 +459,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
                 //Set the current SMP secret for new user for chatroom and when client is not loggedin
                 do otrsessie.SetSMPUserSecret(user.Name, theSecretSMPText) |> ignore 
         //Close Dialog for processing keys
-        do WaitingProcesForm.waitDialog.Close() 
+        do WaitProcessingKeysForm.waitDialog.Close() 
      
      //Process OTR and Socket messages
      else

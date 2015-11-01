@@ -1,4 +1,4 @@
-﻿module WaitingProcesForm
+﻿module WaitProcessingKeysForm
 
 (*
 Hogeschool Rotterdam
@@ -7,7 +7,7 @@ Student nummer: 0883388 en 0882342
 https://visualstudiogallery.msdn.microsoft.com/136b942e-9f2c-4c0b-8bac-86d774189cff
 09-10-2015
 *)
-
+open System
 open System.Windows.Forms
 open System.Windows.Controls
 open System.Windows

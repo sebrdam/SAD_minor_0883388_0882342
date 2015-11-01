@@ -4,7 +4,7 @@
 Hogeschool Rotterdam
 Student nummer: 0883388 en 0882342
 Login box for account login or create
-26-10-2015
+01-11-2015
 *)
 
 open System
@@ -12,7 +12,6 @@ open System.Windows.Forms
 open System.Drawing
 
 let mutable passwordValue = ""
-//let mutable isLoggedIn: bool = false
 
 let showDialog (text) =
 
@@ -57,7 +56,6 @@ let showDialog (text) =
 
     //Set the password for account
     passwordValue <- textBox.Text
-    
     
     //return 
     returnDialogResult

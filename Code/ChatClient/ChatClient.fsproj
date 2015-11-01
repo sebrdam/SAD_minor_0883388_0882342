@@ -59,6 +59,7 @@
     <Reference Include="System.Drawing" />
     <Reference Include="System.Numerics" />
     <Reference Include="System.Runtime.Serialization" />
+    <Reference Include="System.Windows" />
     <Reference Include="System.Windows.Controls.Ribbon" />
     <Reference Include="System.Windows.Forms" />
     <Reference Include="websocket-sharp">
@@ -69,14 +70,15 @@
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Constants.fs" />
     <Compile Include="Functions.fs" />
-    <Compile Include="SaveDialog.fs" />
+    <Compile Include="LoginAccountDialog.fs" />
     <Compile Include="LoginChatroomDialog.fs" />
     <Compile Include="DecryptAES.fs" />
     <Compile Include="EncryptAES.fs" />
-    <Compile Include="SaveData.fs" />
+    <Compile Include="SaveIV.fs" />
+    <Compile Include="SaveHistory.fs" />
+    <Compile Include="SaveDSAKey.fs" />
     <Compile Include="WebSocketConnect.fs" />
-    <Compile Include="DSAKey.fs" />
-    <Compile Include="WaitingProcesForm.fs" />
+    <Compile Include="WaitProcessingKeysForm.fs" />
     <Compile Include="NotifyIcon.fs" />
     <Compile Include="EnterMultiOTRChatroomForm.fs" />
     <Compile Include="Program.fs" />
