@@ -30,42 +30,40 @@ module DecryptAES
      
      let CreateDecryptedMessage (ciphertext: string, key: byte [], IV: byte []) =
       
-      //Encode the text in array bytes
-      let cipherTextBytes = System.Convert.FromBase64String(ciphertext)
-      
-      //Start the AES
-      //Performs symmetric encryption and decryption using the Cryptographic Application Programming Interfaces (CAPI) 
-      //implementation of the Advanced Encryption Standard (AES) algorithm
-      let aes = new AesCryptoServiceProvider()
-      //Set de mode for Operation -> CBC in this case
-      aes.Mode <- CipherMode.CBC 
-      aes.Padding <- PaddingMode.Zeros
-
-      // Genereer denryptor van de bestaaande key en IV
-      use decryptor: ICryptoTransform = aes.CreateDecryptor(key,IV);
-     
-      //een memorystream voor data. met de encrypted tekst in array bytes
-      use memoryStream = new MemoryStream(cipherTextBytes)
-      
-      // init een cryptographic stream. Met nu read
-      use cryptoStream: CryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read)
-           
-      //Maak een nieuwe byte array met de lengte van de ciphertext oorspronkelijk bericht zal nooit groter zijn
-      let plainTextBytes: byte [] = Array.zeroCreate cipherTextBytes.Length
-
-      //Decrypt en Lees de decrypted stream in de nieuwe byte array
-      let mutable decryptedByteCount: int = 0
-      decryptedByteCount <- cryptoStream.Read(plainTextBytes, 0, plainTextBytes.Length) 
-                           
-      //sluit streams
-      memoryStream.Close()
-      cryptoStream.Close()
-      
-      //zet de decrypted tekst om naar string
-      let plainText: string = Encoding.UTF8.GetString(plainTextBytes, 0, decryptedByteCount);
-      
-      //Return decrypted string.
-      plainText
-      
-
+         //Encode the text in array bytes
+         let cipherTextBytes = System.Convert.FromBase64String(ciphertext)
+         
+         //Start the AES
+         //Performs symmetric encryption and decryption using the Cryptographic Application Programming Interfaces (CAPI) 
+         //implementation of the Advanced Encryption Standard (AES) algorithm
+         let aes = new AesCryptoServiceProvider()
+         //Set de mode for Operation -> CBC in this case
+         aes.Mode <- CipherMode.CBC 
+         aes.Padding <- PaddingMode.Zeros
+         
+         // Generate decryptor using existing key and IV
+         use decryptor: ICryptoTransform = aes.CreateDecryptor(key,IV);
+         
+         //a memorystream for data, using the encrypted text in array bytes
+         use memoryStream = new MemoryStream(cipherTextBytes)
+         
+         //init an cryptographic stream, with read
+         use cryptoStream: CryptoStream = new CryptoStream(memoryStream, decryptor, CryptoStreamMode.Read)
+              
+         //Make a new byte array with the length of the ciphertext, the original message will never be bigger
+         let plainTextBytes: byte [] = Array.zeroCreate cipherTextBytes.Length
+         
+         //Decrypt and read the decrypted stream in the new byte array
+         let mutable decryptedByteCount: int = 0
+         decryptedByteCount <- cryptoStream.Read(plainTextBytes, 0, plainTextBytes.Length) 
+                              
+         memoryStream.Close()
+         cryptoStream.Close()
+         
+         let plainText: string = Encoding.UTF8.GetString(plainTextBytes, 0, decryptedByteCount);
+         
+         //Return decrypted string.
+         plainText
+         
+         
 

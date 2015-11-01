@@ -17,25 +17,25 @@ open System
 
 let mutable trayIcon = new NotifyIcon()
 
-//Make ballon when messag comes in
+//Show notification when message is received
 let makeBalloonTip (form : Form) (text: string) (sendername: string) = 
   
   let myHandler (e: EventArgs) =
       form.WindowState <- FormWindowState.Normal
       do form.Activate()
-  //Make a icon
+  //Make an icon
   trayIcon.ContextMenu <- new ContextMenu()
   trayIcon.Visible <- true
   trayIcon.Icon <- new Icon("test.ico")
   trayIcon.Text <- "Secure chat"
   trayIcon.Click.Add(myHandler)
-  //If form is minimized then show balloontip
+  //If form is minimized then show notification
   if form.WindowState = FormWindowState.Minimized then
      trayIcon.BalloonTipText <- text
      trayIcon.BalloonTipTitle <- "Sidbas secure Chat"
      trayIcon.BalloonTipClicked.Add(myHandler)
      do trayIcon.ShowBalloonTip(800)
-  //Let the window come in front
+  //Let the window come up front
   else
      form.WindowState <- FormWindowState.Normal
      do form.Activate()

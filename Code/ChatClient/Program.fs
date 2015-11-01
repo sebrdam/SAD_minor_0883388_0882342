@@ -24,7 +24,7 @@ open Newtonsoft.Json
 let mutable userName : TextBox = null
 let mutable chatroomName : TextBox = null
 
-let mutable chatroomType: string = "1" 
+let mutable chatroomType: string = Constants.ChatroomTypeOneOnOne
 let mutable chatroomTypeOneToOne : RadioButton = null
 let mutable chatroomTypePrivate : RadioButton = null
 let mutable chatroomTypePublic : RadioButton = null
@@ -48,7 +48,6 @@ SaveIV.generateIVKey()
 
 // Generate random values if you don't fill them in. Ninja's love this.
 let EnterMultiOTRChatRoomValidation userName chatRoomName =
-    
     let mutable userNameMutable = userName
     let mutable chatRoomNameMutable = chatRoomName
     if( userNameMutable = "") then
@@ -56,7 +55,7 @@ let EnterMultiOTRChatRoomValidation userName chatRoomName =
     if( chatRoomNameMutable = "") then
         chatRoomNameMutable <- Functions.RandomStringGenerator(8)
     //If chatroom is private ask for password
-    if chatroomType = "2" then
+    if chatroomType = Constants.ChatroomTypePrivate then
        let result: DialogResult = LoginChatroomDialog.showDialog("Password for chatroom") 
        if result =  DialogResult.OK then
         password <- LoginChatroomDialog.passwordValue
@@ -67,42 +66,36 @@ let EnterMultiOTRChatRoomValidation userName chatRoomName =
 //eventforhistory clicked
 let historyEventClicked (theText: #ComboBox)(e: EventArgs) = 
     let selected = theText.SelectedItem.ToString()
-    let readTheConfigdata = SaveHistory.readConfigData()
-    for b in readTheConfigdata do
-      let json: string = JsonConvert.DeserializeObject(b).ToString()
-      let income: SaveHistory.Incoming = JsonConvert.DeserializeObject<SaveHistory.Incoming>(json)
-      let incomeSelectedName = income.Chatroom  + " -> " + income.Name
+    let readHistoryData = SaveHistory.readHistoryData()
+    for historyData in readHistoryData do
+      let historyDataJSONDeserialized: SaveHistory.Incoming = JsonConvert.DeserializeObject<SaveHistory.Incoming>(historyData)
+      let incomeSelectedName = historyDataJSONDeserialized.Chatroom  + " -> " + historyDataJSONDeserialized.Name
       if incomeSelectedName = selected then
-         do EnterMultiOTRChatroomForm.enterOTRChatroom income.Name income.Chatroom chatroomType password |> ignore
+         do EnterMultiOTRChatroomForm.enterOTRChatroom historyDataJSONDeserialized.Name historyDataJSONDeserialized.Chatroom chatroomType password |> ignore
     do null 
 
 //Reload combobox clicked
 let reloadClicked (theText: #ComboBox)(e: EventArgs) = 
     do theText.Items.Clear()
-    let readTheConfigdata = SaveHistory.readConfigData()
-    for b in readTheConfigdata do
-      let json: string = JsonConvert.DeserializeObject(b).ToString()
-      let income: SaveHistory.Incoming = JsonConvert.DeserializeObject<SaveHistory.Incoming>(json)
-      let theChatroomNames = income.Chatroom
-      let theNames = income.Name
-      
-      //Debug test the secret
-      let test = income.ListOfUsers.[0].Key
-      Console.WriteLine("thesecret: " + test)
+    let readHistoryData = SaveHistory.readHistoryData()
+    for historyData in readHistoryData do
+      let incomingJSONDeserialized: SaveHistory.Incoming = JsonConvert.DeserializeObject<SaveHistory.Incoming>(historyData)
+      let theChatroomNames = incomingJSONDeserialized.Chatroom
+      let theNames = incomingJSONDeserialized.Name
       
       do theText.Items.Add(theChatroomNames + " -> " + theNames) |> ignore 
       do theText.Text <- "Choose History"
 
 let chatroomTypeChanged (e: EventArgs) =
     if(chatroomTypeOneToOne.Checked) then
-       chatroomType <- "1" 
+       chatroomType <- Constants.ChatroomTypeOneOnOne
     elif(chatroomTypePrivate.Checked) then
-       chatroomType <- "2"
+       chatroomType <- Constants.ChatroomTypePrivate
     else
-       chatroomType <- "3"
+       chatroomType <- Constants.ChatroomTypePublic
 
 //Account login clicked
-let passwordLoginButtonClicked (passwordButtonLogin: #Button) (comboBox: #ComboBox) (buttonReload: #PictureBox) (e: EventArgs) =
+let passwordLoginButtonClicked (passwordButtonLogin: #Button) (historyComboBox: #ComboBox) (buttonReload: #PictureBox) (e: EventArgs) =
     
     let mutable result: DialogResult = DialogResult.Ignore 
     if not (File.Exists(SaveHistory.CONFIG_FILE)) then
@@ -122,37 +115,35 @@ let passwordLoginButtonClicked (passwordButtonLogin: #Button) (comboBox: #ComboB
         if read.Length <> 0 then
            //Check if password is correct
            if SaveHistory.checkPassword() then
-              let mutable json: string  = ""
-              let readTheConfigdata = SaveHistory.readConfigData()
-              for b in readTheConfigdata do
-                  do json <- JsonConvert.DeserializeObject(b).ToString()
-                  if json <> "" then
-                      let income: SaveHistory.Incoming = JsonConvert.DeserializeObject<SaveHistory.Incoming>(json)
-                      let theChatroomNames = income.Chatroom
-                      let theNames = income.Name
-                      do comboBox.Items.Add(theChatroomNames + " -> " + theNames) |> ignore
-              comboBox.Text <- "Choose History"
-              comboBox.Show()
+              let mutable historyDataDeserialized: string  = ""
+              let readHistoryData = SaveHistory.readHistoryData()
+              for historyData in readHistoryData do
+                  let historyDataDeserialized: SaveHistory.Incoming = JsonConvert.DeserializeObject<SaveHistory.Incoming>(historyData)
+                  let theChatroomNames = historyDataDeserialized.Chatroom
+                  let theNames = historyDataDeserialized.Name
+                  do historyComboBox.Items.Add(theChatroomNames + " -> " + theNames) |> ignore
+              historyComboBox.Text <- "Choose History"
+              historyComboBox.Show()
               buttonReload.Show()
               passwordButtonLogin.Hide()
            //if incorrect password
            else
              let result = MessageBox.Show("Incorrect password?", "IncorrectPassword", MessageBoxButtons.OK) 
              LoginAccountDialog.isLoggedIn <- false
-             comboBox.Hide()
+             historyComboBox.Hide()
              buttonReload.Hide()
              passwordButtonLogin.Show()
         
         //if there is nothing in config file
         else
-           comboBox.Text <- "No History"
-           comboBox.Show()
+           historyComboBox.Text <- "No History"
+           historyComboBox.Show()
            buttonReload.Show()
            passwordButtonLogin.Hide()
     
     //Do not display saved History when dialog result clicked is cancelled
     else
-       comboBox.Hide()
+       historyComboBox.Hide()
        buttonReload.Hide()
        passwordButtonLogin.Show()
 
@@ -230,7 +221,6 @@ let mainForm title =
   chatroomTypePrivate.Text <- "MPOTR Private"
   chatroomTypePrivate.CheckedChanged.Add(chatroomTypeChanged)
   
-
   chatroomTypePublic <- new RadioButton()
   chatroomTypePublic.Location <- new System.Drawing.Point(30, 250)
   chatroomTypePublic.Name <- "chatroomTypePublic"

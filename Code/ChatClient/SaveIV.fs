@@ -35,8 +35,7 @@ let generateIVKey() =
       File.WriteAllText(IV_FILE, newJson)
    else
       let read = File.ReadAllLines(IV_FILE)
-      //JsonConvert.DeserializeObject<Person>( jsonstring );
-      let json: string = JsonConvert.DeserializeObject(read.[0]).ToString()
-      let income: IVConfig = JsonConvert.DeserializeObject<IVConfig>(json)
-      iV <- income.IV
-      salt <- income.Salt
+      let incomingJSON: string = JsonConvert.DeserializeObject(read.[0]).ToString()
+      let incomingJSONDeserialized: IVConfig = JsonConvert.DeserializeObject<IVConfig>(incomingJSON)
+      iV <- incomingJSONDeserialized.IV
+      salt <- incomingJSONDeserialized.Salt

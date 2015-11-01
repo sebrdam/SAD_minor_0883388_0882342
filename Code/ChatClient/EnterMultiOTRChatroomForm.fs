@@ -4,7 +4,7 @@
 Hogeschool Rotterdam
 Student nummer: 0883388 en 0882342
 
-09-10-2015
+01-11-2015
 *)
 
 open OTR
@@ -32,7 +32,7 @@ open System.Security.Cryptography
 open WaitProcessingKeysForm
 open WebSocketConnect
 
-// -- Define user and incoming type's, used for JSON received from WebSocket server.
+//Define user and incoming type's, used for JSON received from WebSocket server.
 type user = {Name: string; Chatroom: string}
 type incoming = {Message: string; ListOfUsers: ResizeArray<user> }
 
@@ -45,13 +45,13 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   
   let webSocket = WebSocketConnect.setWebSocket "wss://127.0.0.1:8080/MultiChat" "sebastiaan" "password"
 
-  // -- WebSocket cookies, so WebSocket knows what to do
+  //WebSocket cookies, so WebSocket knows what to do
   webSocket.SetCookie (new Net.Cookie ("chatroomName", chatRoomName))
   webSocket.SetCookie (new Net.Cookie ("name", userName))
 
-  if chatroomType = "1" then
+  if chatroomType = Constants.ChatroomTypeOneOnOne then
     webSocket.SetCookie (new Net.Cookie ("chatroomType", "1"))
-  elif chatroomType = "2" then
+  elif chatroomType = Constants.ChatroomTypePrivate then
     webSocket.SetCookie (new Net.Cookie ("chatroomType", "2"))
   else
     webSocket.SetCookie (new Net.Cookie ("chatroomType", "3"))
@@ -66,6 +66,15 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
 
   let mutable SMPButton = new PictureBox()
   let SMPToolTip = new ToolTip()
+
+  let saveButton = new PictureBox()
+  let saveButtonToolTip = new ToolTip()
+  let secretTextBox = new RichTextBox()
+  let questionButton = new PictureBox()
+  let questionButtonToolTip = new ToolTip()
+  let enterMessageTextBoxPanel = new Panel()
+  let conversationTextBoxPanel = new Panel()
+  let userRoomListTextBoxPanel = new Panel()
 
   // MOVE THIS
   let mutable CONST_SMP_MESSAGE = "Sidbas chat"
@@ -112,13 +121,11 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
       if (e.KeyCode = Keys.Enter) then 
             
             //Send message in OTR
-            // Loop dictionary for all OtrSEssionManagers
             let getState = 
                try 
                for OTRSessionManager in OTRSessionManagerList do
                    OTRSessionManager.Value.EncryptMessage(OTRSessionManager.Key, textBoxQuery.Text)
                with | :? ApplicationException as ex -> printfn "exception %s" ex.Message
-            //Send to textbox
             receiveMessageTextBox (Color.Beige) (myUniqueId) ( textBoxQuery.Text ) (conversationTextBox) (mainFormObject)
             //Focus on end of messages en return to input
             let got = text_box_r.Focus()
@@ -140,7 +147,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
        theSecretSMPText <- secret.Text 
        do receiveMessageTextBox (Color.Green) ("OTRSMP")  ( ": " + theSecretSMPText ) (conversationTextBox) (mainFormObject)
 
-  ////EventArgs when clicked on image to set secret
+  //EventArgs when clicked on image to set secret
   let setSMPSecretEventClicked (secret: #RichTextBox) (e: EventArgs) = 
        try 
          for OTRSessionManager in OTRSessionManagerList do
@@ -154,8 +161,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   //Only when Loggedin
   let setSMPSecretFromConfigData (buddyName) = 
     let mutable otrsession: OTRSessionManager = null
-    let readTheConfigdata = SaveHistory.readConfigData()
-    // todo: break from this for loop
+    let readTheConfigdata = SaveHistory.readHistoryData()
     if readTheConfigdata.Length <> 0 then
        //Read saved History data
        for configData in readTheConfigdata do
@@ -257,7 +263,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
       let json: string = JsonConvert.DeserializeObject(DSAKey).ToString()
       let keys: SaveDSAKey.Keys = JsonConvert.DeserializeObject<SaveDSAKey.Keys>(json)
       param <- OTR.Interface.DSAKeyParams(keys.HexParamP, keys.HexParamQ, keys.HexParamG, keys.HexParamX)
-    //Create Session with privae DSA Keys
+    //Create Session with private DSA Keys
     myOTRSessionManager.CreateOTRSession(myBuddyUniqueId, param)
     if requestOTR then
         myOTRSessionManager.RequestOTRSession(myBuddyUniqueId, OTRSessionManager.GetSupportedOTRVersionList().[0])
@@ -270,7 +276,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   //The beginning of form
   //
   /////////////////////////////////////////////////////////////////////
-  let mutable saveButton = new PictureBox()
+  
   saveButton.BackColor <- Color.Transparent
   saveButton.ImageLocation <- "save.png" 
   saveButton.Location <- new Point(15, 7)
@@ -288,7 +294,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
                                        do SaveHistory.updateUser chatRoomName OTRSessionManager.Key theSecretSMPText (OTRSessionManager.Value.GetMyBuddyFingerPrint(OTRSessionManager.Key)) userName |> ignore
                                     with | :? ApplicationException as ex -> printfn "exception %s" ex.Message)
 
-  let saveButtonToolTip = new ToolTip()
+
   saveButtonToolTip.SetToolTip(saveButton, "The secret and fingerprints are also saved! When entering the saved room the fingerprint will automatically be verified.")
   saveButtonToolTip.ToolTipTitle <- "Save the Chatroom and user name for later use"
   saveButtonToolTip.AutoPopDelay <- 500000000
@@ -300,7 +306,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   SMPButton.Size <- new System.Drawing.Size(30, 30)
   SMPButton.Cursor <- Cursors.Hand
   
-  SMPButton.Click.Add (fun _ -> let result = MessageBox.Show("You and your buddy's must first set a secret", "Check you buddy's secret", MessageBoxButtons.OKCancel) 
+  SMPButton.Click.Add (fun _ -> let result = MessageBox.Show("Make sure to set the secret before pressing OK ( Including your buddies! )", "Validate secret of buddies", MessageBoxButtons.OKCancel) 
                                 if result =  DialogResult.OK then
                                    try
                                      for OTRSessionManager in OTRSessionManagerList do
@@ -311,7 +317,6 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   SMPToolTip.ToolTipTitle <- CONST_SMP_MESSAGE_NONE
   SMPToolTip.IsBalloon <- true
   
-  let secretTextBox = new RichTextBox()
   secretTextBox.Location <- Point(130,10)
   secretTextBox.Height <- 20
   secretTextBox.Width <- 100
@@ -320,19 +325,17 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   secretTextBox.ScrollBars <- RichTextBoxScrollBars.None
   secretTextBox.KeyDown.Add(setSMPSecret (secretTextBox))
 
-  let mutable questionButton = new PictureBox()
   questionButton.BackColor <- Color.Transparent
   questionButton.ImageLocation <- "smp3.png" 
   questionButton.Location <- new Point(100, 7)
   questionButton.Size <- new System.Drawing.Size(40, 40)
   questionButton.Cursor <- Cursors.Hand
 
-  let questionButtonToolTip = new ToolTip()
   questionButtonToolTip.SetToolTip(questionButton, "
-  Check the identity of your buddy. Set a secret answer. 
-  The answers must match! Your buddy's and you must first set the secret!
+  Check the identity of your buddies. Set a secret answer. 
+  The answers must match! You and your buddies must first set the secret!
   ")
-  questionButtonToolTip.ToolTipTitle <- "Is your buddy really your buddy?"
+  questionButtonToolTip.ToolTipTitle <- "Are your buddies really who they are?"
   //Because of long message let the tooltip show a little bit longer
   questionButtonToolTip.AutoPopDelay <- 500000000
   questionButtonToolTip.IsBalloon <- true
@@ -345,7 +348,6 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   enterMessageTextBox.BorderStyle <- BorderStyle.None
   enterMessageTextBox.Height <- 50
 
-  let enterMessageTextBoxPanel = new Panel()
   enterMessageTextBoxPanel.Dock <- DockStyle.Bottom 
   enterMessageTextBoxPanel.BorderStyle <- BorderStyle.FixedSingle
   enterMessageTextBoxPanel.Controls.Add(enterMessageTextBox);
@@ -356,7 +358,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   conversationTextBox.Anchor <- (AnchorStyles.Top ||| AnchorStyles.Bottom ||| AnchorStyles.Left)
   conversationTextBox.BulletIndent <- 5
   conversationTextBox.Margin <- new System.Windows.Forms.Padding(5)
-  conversationTextBox.Name <- "richTextBox1"
+  conversationTextBox.Name <- "conversationTextBox"
   conversationTextBox.Dock <- DockStyle.Fill
   conversationTextBox.BorderStyle <- BorderStyle.None
   conversationTextBox.TabIndex <- 0
@@ -366,7 +368,6 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   conversationTextBox.ReadOnly <- true
   conversationTextBox.BackColor <- System.Drawing.ColorTranslator.FromHtml("#EAEAF9")
 
-  let conversationTextBoxPanel = new Panel()
   conversationTextBoxPanel.Location <- new System.Drawing.Point(12, 37)
   conversationTextBoxPanel.Size <- new System.Drawing.Size(490, 340)
   conversationTextBoxPanel.BorderStyle <- BorderStyle.FixedSingle
@@ -378,7 +379,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   userRoomListTextBox.Anchor <- (AnchorStyles.Top ||| AnchorStyles.Bottom ||| AnchorStyles.Left)
   userRoomListTextBox.BulletIndent <- 5
   userRoomListTextBox.Margin <- new System.Windows.Forms.Padding(5)
-  userRoomListTextBox.Name <- "richTextBox12"
+  userRoomListTextBox.Name <- "userRoomListTextBox"
   userRoomListTextBox.Dock <- DockStyle.Fill
   userRoomListTextBox.BorderStyle <- BorderStyle.None
   userRoomListTextBox.TabIndex <- 0
@@ -387,7 +388,6 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
   userRoomListTextBox.Font <- new Font(string("Calibri"),float32(10))
   userRoomListTextBox.ReadOnly <- true
 
-  let userRoomListTextBoxPanel = new Panel()
   userRoomListTextBoxPanel.Location <- new System.Drawing.Point(500, 37)
   userRoomListTextBoxPanel.Size <- new System.Drawing.Size(120, 340)
   userRoomListTextBoxPanel.BorderStyle <- BorderStyle.FixedSingle
@@ -427,7 +427,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
      let data = e.Data
      let incomingJSON: string = JsonConvert.DeserializeObject(data).ToString()
      let incomingJSONDeserialized: incoming = JsonConvert.DeserializeObject<incoming>(incomingJSON)
-
+     
      //Get update with when somebody leaves the chatroom and delete from list
      if incomingJSONDeserialized.Message = "UpdateClose" then
         if( OTRSessionManagerList.ContainsKey(incomingJSONDeserialized.ListOfUsers.[0].Name)) then
@@ -437,7 +437,8 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
 
      //If update receive all 
      elif  incomingJSONDeserialized.Message = "Update" then
-        let start = WaitProcessingKeysForm.waitForm() 
+        let start = WaitProcessingKeysForm.waitForm()
+
         //Dialog for processing keys
         WaitProcessingKeysForm.waitDialog.Update()
 

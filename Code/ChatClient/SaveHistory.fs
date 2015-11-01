@@ -24,17 +24,10 @@ type Incoming = {Name: string; Chatroom: string; ListOfUsers: ResizeArray<user> 
 
 let CONFIG_FILE = "data.dat"
 
-//let iVBytes = Encoding.ASCII.GetBytes(SaveIV.iV)
-//let saltValueBytes = Encoding.ASCII.GetBytes(SaveIV.salt)
-
 let iVBytes = Convert.FromBase64String(SaveIV.iV)
 let saltValueBytes = Convert.FromBase64String(SaveIV.salt)
 
-
-
-//make var mutable for uodate password values when lloggedin
 let mutable password: PasswordDeriveBytes = new PasswordDeriveBytes(LoginAccountDialog.passwordValue,saltValueBytes,"SHA256", 12)
-// make keysize can also be 192 or 128
 let mutable keySize: int = 256
 let mutable keyBytes = password.GetBytes(keySize / 8)
 
@@ -113,7 +106,7 @@ let updateUser chatroomName buddyName key DSA myName =
     
 
 //Return the data decrypted 
-let readConfigData() = 
+let readHistoryData() = 
     updatepassword()
     let returnData = new List<string>()
     let mutable decryptedText : string = null
