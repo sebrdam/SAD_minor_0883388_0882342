@@ -42,11 +42,11 @@ let mutable mainFormObject : Form = null
 
 let mutable password = ""
 
-// Generate DSA Key
+//Generate DSA Key en IV
 SaveDSAKey.generateDSAKey()
 SaveIV.generateIVKey()
 
-// Generate random values if you don't fill them in. Ninja's love this.
+//Generate random values if you don't fill them in. Ninja's love this.
 let EnterMultiOTRChatRoomValidation userName chatRoomName =
     let mutable userNameMutable = userName
     let mutable chatRoomNameMutable = chatRoomName

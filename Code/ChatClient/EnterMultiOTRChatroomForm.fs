@@ -106,7 +106,7 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
             theName <- "Me"
           else
             let focus = textBox.Focus()
-            let focus2 = textBox.Focus()
+            let focus2 = enterMessageTextBox.Focus()
             textBox.SelectionColor <- color
             theName <- senderName
             NotifyIcon.makeBalloonTip (form) (message) (senderName)
