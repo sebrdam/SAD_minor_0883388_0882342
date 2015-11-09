@@ -33,7 +33,8 @@ let mutable keyBytes = password.GetBytes(keySize / 8)
 
 //Return sha256 from string
 let getSha256 (pass: string) = 
-    let pass: PasswordDeriveBytes = new PasswordDeriveBytes(pass, saltValueBytes, "SHA256", 12)
+    let saltValueBytes1 = Encoding.ASCII.GetBytes("s@1tValue")
+    let pass: PasswordDeriveBytes = new PasswordDeriveBytes(pass, saltValueBytes1, "SHA256", 12)
     let returnBytes = pass.GetBytes(keySize / 8)
     let returnString = BitConverter.ToString(returnBytes).Replace("-", "").ToLower()
     returnString

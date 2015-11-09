@@ -172,10 +172,14 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
              //Set the secret for this chatroom. Always 0 because we store first value with own name and secret
              theSecretSMPText <- incomingJSONDeserialized.ListOfUsers.[0].Key
              //Loop the users in the chatroom to check DSA fingerprint en set SMP
+
+             let mutable userNotInList = true
+             
+
              try 
                  for user in incomingJSONDeserialized.ListOfUsers do
-                    if user.Name <> userName then
-                        let mutable userNotInList = true
+                    if user.Name <> userName && user.Name = buddyName then
+                        
                         //Look up for every user the OTRSession and send message
                         for OTRSessionManager in OTRSessionManagerList do
                            //If buddy is in History and OTRsessionmanager
@@ -192,13 +196,12 @@ let rec enterOTRChatroom userName chatRoomName chatroomType password =
                            //Buddy is not in history but is in otrsession get session for setting correct SMP
                            if buddyName = OTRSessionManager.Key then
                                otrsession <- OTRSessionManager.Value
-                                 
-                        if userNotInList then
-                           do otrsession.SetSMPUserSecret(buddyName, theSecretSMPText) |> ignore
-                           do otrsession.EncryptMessage(buddyName,  "Saved SMP secret is set for this chatroom." ) |> ignore
-                           receiveMessageTextBox (Color.Red) ("OTR") ( "User '" + buddyName + "' is not found in the history of this chatroom.") (conversationTextBox) (mainFormObject)
-                             
              with | :? ApplicationException as ex -> printfn "exception %s" ex.Message
+                                 
+             if userNotInList then
+                do otrsession.SetSMPUserSecret(buddyName, theSecretSMPText) |> ignore
+                do otrsession.EncryptMessage(buddyName,  "Saved SMP secret is set for this chatroom." ) |> ignore
+                receiveMessageTextBox (Color.Red) ("OTR") ( "User '" + buddyName + "' is not found in the history of this chatroom.") (conversationTextBox) (mainFormObject)
              
    
   //OTR handler
